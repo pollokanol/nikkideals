@@ -1,40 +1,41 @@
-# nikkideals.com
+# nikkideals.com — Responsive Deal Website
 
-Best deals daily — Electronics, Fashion, Home.
+## Quick Deploy via GitHub + Vercel
 
-## Deploy in 3 steps
+### 1. Push to GitHub
+Create a new repo at github.com/new named `nikkideals`, then:
 
-### 1. Install dependencies
-```bash
-npm install
-```
+Upload these files keeping the folder structure:
+- index.html          → root
+- package.json        → root
+- vite.config.js      → root
+- vercel.json         → root
+- .gitignore          → root
+- src/App.jsx         → src/ folder
+- src/main.jsx        → src/ folder
+- public/favicon.svg  → public/ folder
 
-### 2. Test locally
-```bash
-npm run dev
-```
-Opens at http://localhost:5173
+### 2. Deploy on Vercel
+1. Go to vercel.com → Sign up with GitHub
+2. Click Add New Project → Import nikkideals
+3. Leave all settings default → Deploy
+4. Live in ~1 minute!
 
-### 3. Deploy to Vercel (free)
-```bash
-npm run build
-npx vercel --prod
-```
-Your site goes live at a URL like: https://nikkideals.vercel.app
+### 3. Custom domain (nikkideals.com)
+1. Vercel dashboard → Project → Settings → Domains
+2. Add: nikkideals.com
+3. Namecheap DNS:
+   - A record:     @ → 76.76.21.21
+   - CNAME record: www → cname.vercel-dns.com
 
-## Custom domain (nikkideals.com)
-1. Buy domain on Namecheap
-2. In Vercel dashboard → Project → Settings → Domains → Add nikkideals.com
-3. Set Namecheap DNS:
-   - Type: A  Name: @  Value: 76.76.21.21
-   - Type: CNAME  Name: www  Value: cname.vercel-dns.com
+## Admin Login
+Email: admin@nikkideals.com (any password)
 
-## Admin login
-Email: admin@nikkideals.com  (any password)
-
-## Tech stack
-- React 18
-- Vite 5
-- Claude AI (deal auto-fill)
-- Unsplash (product images)
-- Deployed on Vercel
+## Features
+- Responsive: mobile, tablet, desktop
+- Light / Dark mode toggle
+- 12 sample deals with real images
+- Coupon code sheet
+- AI deal adder (admin)
+- Price tracking & wishlist
+- Push notifications
