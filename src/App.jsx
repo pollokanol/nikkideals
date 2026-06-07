@@ -618,163 +618,202 @@ function NotifSheet({ notifs, c, isDesktop, onClear, onClose }) {
   );
 }
 
-// ─── Header ───────────────────────────────────────────────────────
-function Header({ c, dark, toggle, user, notifCount, onSignIn, onNotif, onAddDeal, isAdmin }) {
-  const { isDesktop } = useBreakpoint();
+// ─── Header (all-in-one compact bar) ─────────────────────────────
+function Header({ c, dark, toggle, user, notifCount, onSignIn, onNotif, onAddDeal, isAdmin,
+                  tab, setTab, wishlist, tracked,
+                  cat, setCat, sort, setSort, search, setSearch, deals }) {
+  const { isDesktop, isMobile } = useBreakpoint();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef(null);
+  useEffect(()=>{ if(searchOpen && searchRef.current) searchRef.current.focus(); },[searchOpen]);
+
+  const hot = deals.filter(d=>d.hot).length;
+  const topPct = Math.max(...deals.map(d=>d.pct));
+
+  const navItems = [{id:"deals",l:"Deals"},{id:"saved",l:"Saved",b:wishlist.length},{id:"tracking",l:"Track",b:tracked.length},{id:"account",l:"Me"}];
+
   return (
     <header className="glass" style={{borderBottom:`1px solid ${c.border}`,position:"sticky",top:0,zIndex:100}}>
-      <div className="page" style={{height:62,display:"flex",alignItems:"center",gap:16}}>
-        {/* Logo */}
-        <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-          <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(110,231,183,.4)"}}>
-            <span style={{fontSize:15,fontWeight:900,color:"#080810",fontFamily:"serif",lineHeight:1}}>N</span>
+      {/* ── Single row ── */}
+      <div className="page" style={{height:52,display:"flex",alignItems:"center",gap:10,overflowX:"auto",scrollbarWidth:"none"}}>
+
+        {/* Logo — compact */}
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginRight:4}}>
+          <div style={{width:26,height:26,borderRadius:8,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(110,231,183,.35)"}}>
+            <span style={{fontSize:12,fontWeight:900,color:"#080810",fontFamily:"serif",lineHeight:1}}>N</span>
           </div>
-          <div>
-            <span style={{fontSize:17,fontWeight:900,color:c.text,letterSpacing:"-.5px"}}>nikki</span>
-            <span className="grad" style={{fontSize:17,fontWeight:900,letterSpacing:"-.5px"}}>deals</span>
-            <span style={{fontSize:11,color:c.text3,fontWeight:400}}>.com</span>
-          </div>
+          <span style={{fontSize:15,fontWeight:900,color:c.text,letterSpacing:"-.5px",whiteSpace:"nowrap"}}>
+            nikki<span className="grad">deals</span>
+          </span>
         </div>
 
-        <div style={{flex:1}}/>
+        {/* Desktop: tab nav inline */}
+        {isDesktop && navItems.map(n=>{
+          const a=tab===n.id;
+          return (
+            <button key={n.id} className="tap" onClick={()=>setTab(n.id)}
+              style={{padding:"4px 12px",height:28,borderRadius:8,border:"none",background:a?"rgba(110,231,183,.15)":"transparent",color:a?"#6EE7B7":c.text3,fontSize:13,fontWeight:a?700:400,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all .15s",display:"flex",alignItems:"center",gap:5}}>
+              {n.l}
+              {n.b>0&&<span style={{background:"#6EE7B7",color:"#080810",fontSize:9,fontWeight:900,padding:"1px 6px",borderRadius:8}}>{n.b}</span>}
+            </button>
+          );
+        })}
 
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          {isAdmin&&isDesktop&&(
-            <button className="tap" onClick={onAddDeal}
-              style={{padding:"8px 16px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text2,fontSize:13,fontWeight:600,letterSpacing:".01em"}}>
-              + Add deal
-            </button>
-          )}
-          <button className="tap" onClick={toggle}
-            style={{width:36,height:36,borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>
-            {dark?"☀️":"🌙"}
-          </button>
-          {user&&(
-            <button className="tap" onClick={onNotif}
-              style={{width:36,height:36,borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,position:"relative"}}>
-              🔔
-              {notifCount>0&&<span style={{position:"absolute",top:7,right:7,width:7,height:7,borderRadius:"50%",background:"#6EE7B7",border:`2px solid ${c.s1}`}}/>}
-            </button>
-          )}
-          {user?(
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:"#080810",fontSize:13}}>
-                {user.name[0].toUpperCase()}
-              </div>
-              {isDesktop&&<span style={{fontSize:13,color:c.text2,fontWeight:500}}>{user.name}</span>}
+        {/* Desktop: category filters inline */}
+        {isDesktop && tab==="deals" && (
+          <>
+            <div style={{width:1,height:16,background:c.border,flexShrink:0}}/>
+            {CATS.map(x=>{
+              const a=cat===x;
+              return (
+                <button key={x} className="tap" onClick={()=>setCat(x)}
+                  style={{padding:"4px 12px",borderRadius:20,border:`1px solid ${a?"#6EE7B7":c.border}`,background:a?"#6EE7B7":"transparent",color:a?"#080810":c.text3,fontSize:12,fontWeight:a?700:500,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all .15s",boxShadow:a?"0 2px 10px rgba(110,231,183,.25)":"none"}}>
+                  {x}
+                </button>
+              );
+            })}
+          </>
+        )}
+
+        {/* Spacer */}
+        <div style={{flex:1,minWidth:8}}/>
+
+        {/* Live stat — desktop only, subtle */}
+        {isDesktop && tab==="deals" && (
+          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+            <span className="live-dot" style={{width:5,height:5,borderRadius:"50%",background:"#6EE7B7",display:"inline-block"}}/>
+            <span style={{fontSize:11,color:c.text3,fontWeight:500,whiteSpace:"nowrap"}}>{hot} hot · up to {topPct}% off</span>
+          </div>
+        )}
+
+        {/* Search — expands on tap */}
+        {searchOpen ? (
+          <div style={{display:"flex",alignItems:"center",gap:8,flex:1,maxWidth:260}}>
+            <div style={{position:"relative",flex:1}}>
+              <svg style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}} width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="8" stroke={c.text3} strokeWidth="2.5"/>
+                <path d="M21 21l-4.35-4.35" stroke={c.text3} strokeWidth="2.5" strokeLinecap="round"/>
+              </svg>
+              <input ref={searchRef} value={search} onChange={e=>setSearch(e.target.value)}
+                placeholder="Search deals..."
+                style={{width:"100%",padding:"6px 10px 6px 26px",borderRadius:10,border:`1px solid #6EE7B7`,background:c.s2,color:c.text,fontSize:13,boxShadow:"0 0 0 3px rgba(110,231,183,.12)"}}/>
             </div>
-          ):(
-            <button className="tap" onClick={onSignIn}
-              style={{padding:"9px 20px",borderRadius:10,border:"none",background:"#6EE7B7",color:"#080810",fontSize:13,fontWeight:700,boxShadow:"0 4px 16px rgba(110,231,183,.35)"}}>
-              Sign in
+            <button className="tap" onClick={()=>{setSearchOpen(false);setSearch("");}}
+              style={{background:"none",border:"none",color:c.text3,fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>
+              Cancel
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button className="tap" onClick={()=>setSearchOpen(true)}
+            style={{width:32,height:32,borderRadius:9,border:`1px solid ${c.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="8" stroke={c.text3} strokeWidth="2.5"/>
+              <path d="M21 21l-4.35-4.35" stroke={c.text3} strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
+
+        {/* Sort — desktop */}
+        {isDesktop && tab==="deals" && !searchOpen && (
+          <select value={sort} onChange={e=>setSort(e.target.value)}
+            style={{padding:"5px 10px",borderRadius:9,border:`1px solid ${c.border}`,background:"transparent",color:c.text3,fontSize:12,cursor:"pointer",flexShrink:0}}>
+            <option value="hot">Trending</option>
+            <option value="disc">Top %</option>
+            <option value="low">$ Low</option>
+            <option value="high">$ High</option>
+          </select>
+        )}
+
+        {/* Theme */}
+        <button className="tap" onClick={toggle}
+          style={{width:32,height:32,borderRadius:9,border:`1px solid ${c.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>
+          {dark?"☀️":"🌙"}
+        </button>
+
+        {/* Bell */}
+        {user && (
+          <button className="tap" onClick={onNotif}
+            style={{width:32,height:32,borderRadius:9,border:`1px solid ${c.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,position:"relative",flexShrink:0}}>
+            🔔
+            {notifCount>0&&<span style={{position:"absolute",top:6,right:6,width:6,height:6,borderRadius:"50%",background:"#6EE7B7",border:`2px solid ${c.s1}`}}/>}
+          </button>
+        )}
+
+        {/* Admin add */}
+        {isAdmin && isDesktop && !searchOpen && (
+          <button className="tap" onClick={onAddDeal}
+            style={{padding:"6px 14px",borderRadius:9,border:`1px solid ${c.border}`,background:"transparent",color:c.text2,fontSize:12,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>
+            + Add
+          </button>
+        )}
+
+        {/* Auth */}
+        {user ? (
+          <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:"#080810",fontSize:12,flexShrink:0,cursor:"pointer"}}>
+            {user.name[0].toUpperCase()}
+          </div>
+        ) : (
+          <button className="tap" onClick={onSignIn}
+            style={{padding:"7px 16px",borderRadius:9,border:"none",background:"#6EE7B7",color:"#080810",fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:"nowrap",boxShadow:"0 2px 12px rgba(110,231,183,.35)"}}>
+            Sign in
+          </button>
+        )}
       </div>
+
+      {/* Mobile: category strip + sort — only on deals tab */}
+      {isMobile && tab==="deals" && !searchOpen && (
+        <div style={{display:"flex",gap:8,padding:"0 16px 10px",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",alignItems:"center"}}>
+          {CATS.map(x=>{
+            const a=cat===x;
+            return (
+              <button key={x} className="tap" onClick={()=>setCat(x)}
+                style={{padding:"4px 12px",borderRadius:20,border:`1px solid ${a?"#6EE7B7":c.border}`,background:a?"#6EE7B7":"transparent",color:a?"#080810":c.text3,fontSize:12,fontWeight:a?700:500,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all .15s"}}>
+                {x}
+              </button>
+            );
+          })}
+          <div style={{width:1,height:14,background:c.border,flexShrink:0}}/>
+          <select value={sort} onChange={e=>setSort(e.target.value)}
+            style={{padding:"4px 10px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text3,fontSize:11,cursor:"pointer",flexShrink:0}}>
+            <option value="hot">Trending</option>
+            <option value="disc">Top %</option>
+            <option value="low">$ Low</option>
+            <option value="high">$ High</option>
+          </select>
+        </div>
+      )}
     </header>
   );
 }
 
-// ─── Hero ──────────────────────────────────────────────────────────
-function Hero({ deals, c, dark }) {
+// ─── Compact Deal Strip (replaces Hero) ──────────────────────────
+function DealStrip({ deals, c, dark }) {
   const hot = deals.filter(d=>d.hot).length;
   const topPct = Math.max(...deals.map(d=>d.pct));
   const topSave = Math.max(...deals.map(d=>d.was-d.now));
   return (
-    <div style={{borderBottom:`1px solid ${c.border}`,padding:"64px 0 56px",position:"relative",overflow:"hidden"}}>
-      {/* Background glow orbs */}
-      <div style={{position:"absolute",top:-100,left:"10%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(110,231,183,.08),transparent 70%)",pointerEvents:"none",animation:"glow 6s ease-in-out infinite"}}/>
-      <div style={{position:"absolute",top:-60,right:"5%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(147,197,253,.06),transparent 70%)",pointerEvents:"none",animation:"glow 8s ease-in-out infinite 2s"}}/>
-
-      <div className="page" style={{position:"relative"}}>
-        {/* Live badge */}
-        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:dark?"rgba(110,231,183,.1)":"rgba(110,231,183,.15)",border:"1px solid rgba(110,231,183,.25)",borderRadius:20,padding:"5px 14px",marginBottom:20}}>
-          <span className="live-dot" style={{width:6,height:6,borderRadius:"50%",background:"#6EE7B7",display:"inline-block"}}/>
-          <span style={{fontSize:11,fontWeight:700,color:"#6EE7B7",letterSpacing:".06em",textTransform:"uppercase"}}>Live · {deals.length} deals today</span>
+    <div style={{borderBottom:`1px solid ${c.border}`,padding:"20px 0 18px",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:-80,left:"15%",width:320,height:320,borderRadius:"50%",background:"radial-gradient(circle,rgba(110,231,183,.06),transparent 70%)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",top:-60,right:"8%",width:260,height:260,borderRadius:"50%",background:"radial-gradient(circle,rgba(147,197,253,.05),transparent 70%)",pointerEvents:"none"}}/>
+      <div className="page" style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+        <div>
+          <h1 style={{fontSize:"clamp(22px,3vw,36px)",fontWeight:900,letterSpacing:"-1px",lineHeight:1.1,color:c.text}}>
+            <span className="grad">Best deals</span>
+            <span style={{color:c.text2,fontWeight:300,fontStyle:"italic"}}> today.</span>
+          </h1>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+            <span className="live-dot" style={{width:5,height:5,borderRadius:"50%",background:"#6EE7B7",display:"inline-block"}}/>
+            <span style={{fontSize:12,color:c.text3}}>{deals.length} deals · updated hourly</span>
+          </div>
         </div>
-
-        {/* Headline */}
-        <h1 style={{fontSize:"clamp(38px,5.5vw,74px)",fontWeight:900,letterSpacing:"-2px",lineHeight:1.02,marginBottom:16,maxWidth:760}}>
-          <span style={{color:c.text}}>The internet's</span><br/>
-          <span className="grad">best deals</span>
-          <span style={{color:c.text2,fontWeight:300,fontStyle:"italic"}}> — curated daily.</span>
-        </h1>
-
-        <p style={{fontSize:16,color:c.text2,maxWidth:520,lineHeight:1.65,marginBottom:40,fontWeight:400}}>
-          Save up to {topPct}% on electronics, fashion, and home. Real-time price tracking and alerts when things drop.
-        </p>
-
-        {/* Stat chips */}
-        <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-          {[
-            {n:hot,l:"Hot deals",c:"#6EE7B7"},
-            {n:`${topPct}%`,l:"Top discount",c:"#93C5FD"},
-            {n:`$${topSave}`,l:"Max savings",c:"#C4B5FD"},
-          ].map(s=>(
-            <div key={s.l} style={{background:dark?"rgba(255,255,255,.04)":"rgba(0,0,0,.04)",border:`1px solid ${c.border}`,borderRadius:14,padding:"14px 20px",minWidth:110,backdropFilter:"blur(10px)"}}>
-              <div style={{fontSize:26,fontWeight:900,color:s.c,letterSpacing:"-1px"}}>{s.n}</div>
-              <div style={{fontSize:11,color:c.text3,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",marginTop:3}}>{s.l}</div>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+          {[{n:hot,l:"Hot",col:"#6EE7B7"},{n:`${topPct}%`,l:"Off",col:"#93C5FD"},{n:`$${topSave}`,l:"Saved",col:"#C4B5FD"}].map(s=>(
+            <div key={s.l} style={{textAlign:"center",minWidth:56}}>
+              <div style={{fontSize:20,fontWeight:900,color:s.col,letterSpacing:"-.5px",lineHeight:1}}>{s.n}</div>
+              <div style={{fontSize:10,color:c.text3,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",marginTop:2}}>{s.l}</div>
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Filter Bar ───────────────────────────────────────────────────
-function FilterBar({ cat, setCat, sort, setSort, search, setSearch, c, dark }) {
-  return (
-    <div className="glass" style={{borderBottom:`1px solid ${c.border}`,position:"sticky",top:62,zIndex:90}}>
-      <div className="page" style={{height:54,display:"flex",alignItems:"center",gap:10,overflowX:"auto",scrollbarWidth:"none"}}>
-        {CATS.map(x=>{
-          const active=cat===x;
-          return (
-            <button key={x} className="tap" onClick={()=>setCat(x)}
-              style={{padding:"5px 16px",borderRadius:20,border:`1px solid ${active?"#6EE7B7":c.border}`,background:active?"#6EE7B7":"transparent",color:active?"#080810":c.text2,fontSize:13,fontWeight:active?700:500,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all .15s",boxShadow:active?"0 4px 16px rgba(110,231,183,.3)":"none"}}>
-              {x}
-            </button>
-          );
-        })}
-        <div style={{width:1,height:20,background:c.border,flexShrink:0,margin:"0 4px"}}/>
-        <select value={sort} onChange={e=>setSort(e.target.value)}
-          style={{padding:"5px 12px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text2,fontSize:12,fontWeight:500,cursor:"pointer",flexShrink:0}}>
-          <option value="hot">🔥 Trending</option>
-          <option value="disc">💸 Biggest discount</option>
-          <option value="low">↑ Price</option>
-          <option value="high">↓ Price</option>
-        </select>
-        <div style={{flex:1,maxWidth:200,marginLeft:"auto"}}>
-          <div style={{position:"relative"}}>
-            <svg style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}} width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="8" stroke={c.text3} strokeWidth="2.5"/>
-              <path d="M21 21l-4.35-4.35" stroke={c.text3} strokeWidth="2.5" strokeLinecap="round"/>
-            </svg>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
-              style={{width:"100%",padding:"5px 10px 5px 28px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text,fontSize:13}}/>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Tab Navigation ───────────────────────────────────────────────
-function TabNav({ tab, setTab, c, wishlist, tracked }) {
-  const items=[{id:"deals",l:"Deals"},{id:"saved",l:"Saved",b:wishlist.length},{id:"tracking",l:"Tracking",b:tracked.length},{id:"account",l:"Account"}];
-  return (
-    <div className="glass desktop-only" style={{borderBottom:`1px solid ${c.border}`}}>
-      <div className="page" style={{display:"flex",height:46}}>
-        {items.map(n=>{
-          const a=tab===n.id;
-          return (
-            <button key={n.id} className="tap" onClick={()=>setTab(n.id)}
-              style={{padding:"0 18px",height:"100%",border:"none",borderBottom:`2px solid ${a?"#6EE7B7":"transparent"}`,background:"transparent",color:a?c.text:c.text2,fontSize:13,fontWeight:a?700:400,cursor:"pointer",display:"flex",alignItems:"center",gap:7,marginBottom:-1,transition:"color .15s"}}>
-              {n.l}
-              {n.b>0&&<span style={{background:"#6EE7B7",color:"#080810",fontSize:10,fontWeight:800,padding:"1px 7px",borderRadius:10}}>{n.b}</span>}
-            </button>
-          );
-        })}
       </div>
     </div>
   );
@@ -1027,16 +1066,16 @@ export default function App() {
 
   return (
     <div style={{minHeight:"100vh",background:c.bg,color:c.text,position:"relative",zIndex:1}}>
-      <Ticker deals={deals}/>
       <Header c={c} dark={dark} toggle={toggle} user={user} notifCount={notifs.length}
         onSignIn={()=>setShowAuth("login")} onNotif={()=>setShowNotif(true)}
-        onAddDeal={()=>setShowAdd(true)} isAdmin={isAdmin}/>
-      <TabNav tab={tab} setTab={setTab} c={c} wishlist={wishlist} tracked={tracked}/>
+        onAddDeal={()=>setShowAdd(true)} isAdmin={isAdmin}
+        tab={tab} setTab={setTab} wishlist={wishlist} tracked={tracked}
+        cat={cat} setCat={setCat} sort={sort} setSort={setSort}
+        search={search} setSearch={setSearch} deals={deals}/>
 
       {tab==="deals"&&(
         <>
-          <Hero deals={deals} c={c} dark={dark}/>
-          <FilterBar cat={cat} setCat={setCat} sort={sort} setSort={setSort} search={search} setSearch={setSearch} c={c} dark={dark}/>
+          <DealStrip deals={deals} c={c} dark={dark}/>
           <div className="page" style={{padding:"28px 0",paddingBottom:isMobile?100:60}}>
             {isAdmin&&isMobile&&(
               <button className="tap" onClick={()=>setShowAdd(true)}
