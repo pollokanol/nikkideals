@@ -124,6 +124,12 @@ const makeCSS = (dark) => {
     @media(min-width:900px)  { .deal-grid { grid-template-columns:repeat(3,1fr); } }
     @media(min-width:1200px) { .deal-grid { grid-template-columns:repeat(4,1fr); } }
 
+    .deal-list {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
     .overlay { position:fixed;inset:0;z-index:900; animation:fadeIn .2s ease; }
     .sheet {
       position:absolute;bottom:0;left:0;right:0;
@@ -222,6 +228,69 @@ function Ticker({ deals }) {
             <span style={{opacity:.3}}>·</span>
           </span>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── List Card (compact horizontal row) ──────────────────────────
+function ListCard({ d, wishlist, tracked, onWish, onTrack, onGet, c, dark, delay=0 }) {
+  const saved    = wishlist.includes(d.id);
+  const tracking = tracked.includes(d.id);
+  const saving   = d.was - d.now;
+  const ac       = d.accent||"#6EE7B7";
+
+  return (
+    <div className="card reveal" onClick={()=>onGet(d)}
+      style={{
+        display:"flex",alignItems:"center",gap:0,
+        background:c.s1,borderRadius:16,overflow:"hidden",
+        border:`1px solid ${c.border}`,
+        animationDelay:`${delay}s`,cursor:"pointer",
+        boxShadow:dark?`0 2px 12px rgba(0,0,0,.4)`:`0 2px 8px rgba(0,0,0,.06)`,
+      }}>
+
+      {/* Thumbnail */}
+      <div style={{width:96,height:80,flexShrink:0,position:"relative",overflow:"hidden",background:c.s2}}>
+        <img src={d.img} alt={d.title}
+          style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
+          onError={e=>e.target.style.display="none"}/>
+        {/* Discount overlay */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,background:`linear-gradient(to top,${ac}cc,transparent)`,padding:"4px 6px",display:"flex",alignItems:"flex-end"}}>
+          <span style={{fontSize:10,fontWeight:900,color:"#080810",letterSpacing:".02em"}}>-{d.pct}%</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{flex:1,padding:"12px 14px",minWidth:0,display:"flex",flexDirection:"column",gap:3}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:10,fontWeight:700,color:c.text3,letterSpacing:".06em",textTransform:"uppercase"}}>{d.store}</span>
+          {d.hot && <span style={{fontSize:9,fontWeight:700,color:ac,background:`${ac}18`,padding:"1px 6px",borderRadius:8,letterSpacing:".04em",textTransform:"uppercase"}}>Hot</span>}
+          {d.timer && <Timer time={d.timer} style={{fontSize:10,fontWeight:600,color:c.text3,letterSpacing:".02em",marginLeft:"auto"}}/>}
+        </div>
+        <div style={{fontSize:14,fontWeight:800,color:c.text,letterSpacing:"-.2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.title}</div>
+        <div style={{fontSize:12,color:c.text3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.sub}</div>
+      </div>
+
+      {/* Price + actions */}
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 14px 0 0",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:18,fontWeight:900,color:c.text,letterSpacing:"-.6px",lineHeight:1}}>{fp(d.now)}</div>
+          <div style={{fontSize:11,color:c.text3,textDecoration:"line-through",marginTop:1}}>{fp(d.was)}</div>
+          <div style={{fontSize:10,color:ac,fontWeight:600,marginTop:1}}>Save {fp(saving)}</div>
+        </div>
+
+        {/* Heart */}
+        <button className="tap" onClick={()=>onWish(d.id)}
+          style={{width:32,height:32,borderRadius:"50%",border:`1px solid ${saved?ac:c.border}`,background:saved?`${ac}18`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>
+          {saved?"❤️":"🤍"}
+        </button>
+
+        {/* Get button */}
+        <button className="tap" onClick={()=>onGet(d)}
+          style={{padding:"8px 16px",borderRadius:10,border:"none",background:dark?c.s4:"#0A0A18",color:dark?c.text:"#fff",fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:"nowrap",boxShadow:dark?"none":`0 2px 8px rgba(0,0,0,.15)`}}>
+          Get →
+        </button>
       </div>
     </div>
   );
@@ -621,7 +690,8 @@ function NotifSheet({ notifs, c, isDesktop, onClear, onClose }) {
 // ─── Header (all-in-one compact bar) ─────────────────────────────
 function Header({ c, dark, toggle, user, notifCount, onSignIn, onNotif, onAddDeal, isAdmin,
                   tab, setTab, wishlist, tracked,
-                  cat, setCat, sort, setSort, search, setSearch, deals }) {
+                  cat, setCat, sort, setSort, search, setSearch, deals,
+                  viewMode, setViewMode }) {
   const { isDesktop, isMobile } = useBreakpoint();
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef(null);
@@ -685,6 +755,30 @@ function Header({ c, dark, toggle, user, notifCount, onSignIn, onNotif, onAddDea
             <span style={{fontSize:11,color:c.text3,fontWeight:500,whiteSpace:"nowrap"}}>{hot} hot · up to {topPct}% off</span>
           </div>
         )}
+
+        {/* View toggle */}
+        <div style={{display:"flex",background:c.s2,borderRadius:9,padding:3,border:`1px solid ${c.border}`,flexShrink:0,gap:2}}>
+          <button className="tap" onClick={()=>setViewMode("grid")}
+            style={{width:26,height:26,borderRadius:6,border:"none",background:viewMode==="grid"?"#6EE7B7":"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"background .15s"}}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+              <rect x="0" y="0" width="5" height="5" rx="1" fill={viewMode==="grid"?"#080810":c.text3}/>
+              <rect x="7" y="0" width="5" height="5" rx="1" fill={viewMode==="grid"?"#080810":c.text3}/>
+              <rect x="0" y="7" width="5" height="5" rx="1" fill={viewMode==="grid"?"#080810":c.text3}/>
+              <rect x="7" y="7" width="5" height="5" rx="1" fill={viewMode==="grid"?"#080810":c.text3}/>
+            </svg>
+          </button>
+          <button className="tap" onClick={()=>setViewMode("list")}
+            style={{width:26,height:26,borderRadius:6,border:"none",background:viewMode==="list"?"#6EE7B7":"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"background .15s"}}>
+            <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+              <rect x="0" y="0" width="4" height="3" rx="1" fill={viewMode==="list"?"#080810":c.text3}/>
+              <rect x="6" y=".5" width="6" height="2" rx="1" fill={viewMode==="list"?"#080810":c.text3}/>
+              <rect x="0" y="4" width="4" height="3" rx="1" fill={viewMode==="list"?"#080810":c.text3}/>
+              <rect x="6" y="4.5" width="6" height="2" rx="1" fill={viewMode==="list"?"#080810":c.text3}/>
+              <rect x="0" y="8" width="4" height="2" rx="1" fill={viewMode==="list"?"#080810":c.text3}/>
+              <rect x="6" y="8.5" width="6" height="1.5" rx="1" fill={viewMode==="list"?"#080810":c.text3}/>
+            </svg>
+          </button>
+        </div>
 
         {/* Search — expands on tap */}
         {searchOpen ? (
@@ -1024,6 +1118,7 @@ export default function App() {
   const [showNotif,setShowNotif]     = useState(false);
   const [showAdd,setShowAdd]         = useState(false);
   const [toasts,setToasts]           = useState([]);
+  const [viewMode,setViewMode]       = useState("grid");
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -1071,7 +1166,8 @@ export default function App() {
         onAddDeal={()=>setShowAdd(true)} isAdmin={isAdmin}
         tab={tab} setTab={setTab} wishlist={wishlist} tracked={tracked}
         cat={cat} setCat={setCat} sort={sort} setSort={setSort}
-        search={search} setSearch={setSearch} deals={deals}/>
+        search={search} setSearch={setSearch} deals={deals}
+        viewMode={viewMode} setViewMode={setViewMode}/>
 
       {tab==="deals"&&(
         <>
@@ -1084,7 +1180,9 @@ export default function App() {
               </button>
             )}
             {filtered.length>0
-              ?<div className="deal-grid">{filtered.map((d,i)=><DealCard key={d.id} d={d} wishlist={wishlist} tracked={tracked} onWish={toggleWish} onTrack={toggleTrack} onGet={setActiveDeal} c={c} dark={dark} delay={Math.min(i*.04,.35)}/>)}</div>
+              ? viewMode==="grid"
+                ? <div className="deal-grid">{filtered.map((d,i)=><DealCard key={d.id} d={d} wishlist={wishlist} tracked={tracked} onWish={toggleWish} onTrack={toggleTrack} onGet={setActiveDeal} c={c} dark={dark} delay={Math.min(i*.04,.35)}/>)}</div>
+                : <div className="deal-list">{filtered.map((d,i)=><ListCard key={d.id} d={d} wishlist={wishlist} tracked={tracked} onWish={toggleWish} onTrack={toggleTrack} onGet={setActiveDeal} c={c} dark={dark} delay={Math.min(i*.03,.25)}/>)}</div>
               :<div style={{textAlign:"center",padding:"80px 0",color:c.text3}}><div style={{fontSize:32,marginBottom:12}}>—</div><div style={{fontSize:18,fontWeight:600,color:c.text2}}>No deals match</div></div>
             }
           </div>
