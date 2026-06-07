@@ -1,335 +1,391 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-// ─── Admin ────────────────────────────────────────────────────────
 const ADMIN_EMAIL = "admin@nikkideals.com";
 
-// ─── Deals Data ───────────────────────────────────────────────────
-const INITIAL_DEALS = [
-  { id:1,  title:"Sony WH-1000XM5",   sub:"Noise Cancelling Headphones", cat:"Electronics", img:"https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500&h=400&fit=crop", was:349,  now:199, store:"Amazon",    storeLogo:"🛒", pct:43, timer:"05:14:00", badge:"HOT",      hot:true  },
-  { id:2,  title:"Nike Air Max 270",  sub:"Men's Running Shoes",          cat:"Fashion",     img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=400&fit=crop", was:150,  now:74,  store:"Nike",      storeLogo:"✔",  pct:51, timer:null,       badge:"TRENDING", hot:true  },
-  { id:3,  title:"Instant Pot Duo",   sub:"7-in-1 Pressure Cooker",       cat:"Home",        img:"https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=400&fit=crop", was:99,   now:49,  store:"Walmart",   storeLogo:"⭐", pct:50, timer:null,       badge:"DEAL",     hot:false },
-  { id:4,  title:"iPad 10th Gen",     sub:"64GB Wi-Fi — Blue",            cat:"Electronics", img:"https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&h=400&fit=crop", was:449,  now:329, store:"Best Buy",  storeLogo:"💛", pct:27, timer:"03:45:00", badge:"FLASH",    hot:true  },
-  { id:5,  title:"Levi's 501 Jeans",  sub:"Original Straight Fit",        cat:"Fashion",     img:"https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&h=400&fit=crop", was:89,   now:39,  store:"Levi's",    storeLogo:"👖", pct:56, timer:null,       badge:"SALE",     hot:false },
-  { id:6,  title:"Dyson V11 Vacuum",  sub:"Cordless, 60-min runtime",     cat:"Home",        img:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=400&fit=crop", was:599,  now:369, store:"Dyson",     storeLogo:"🌀", pct:38, timer:"08:10:00", badge:"FLASH",    hot:true  },
-  { id:7,  title:"MacBook Air M2",    sub:"13\" Midnight",                 cat:"Electronics", img:"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&h=400&fit=crop", was:1099, now:849, store:"Apple",    storeLogo:"🍎", pct:23, timer:null,       badge:"DEAL",     hot:false },
-  { id:8,  title:"Adidas Ultraboost", sub:"Running — Core Black",         cat:"Fashion",     img:"https://images.unsplash.com/photo-1608231387042-66d1773d3028?w=500&h=400&fit=crop", was:190,  now:109, store:"Adidas",    storeLogo:"🏃", pct:43, timer:"04:55:00", badge:"TRENDING", hot:false },
-  { id:9,  title:"KitchenAid Mixer",  sub:"5-Qt Stand Mixer, Red",        cat:"Home",        img:"https://images.unsplash.com/photo-1556909211-36987daf7b4d?w=500&h=400&fit=crop", was:449,  now:279, store:"W. Sonoma",  storeLogo:"🎂", pct:38, timer:null,       badge:"HOT",      hot:true  },
-  { id:10, title:"Kindle Paperwhite", sub:"16GB Waterproof E-Reader",     cat:"Electronics", img:"https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&h=400&fit=crop", was:139,  now:84,  store:"Amazon",    storeLogo:"🛒", pct:40, timer:"03:20:00", badge:"FLASH",    hot:false },
-  { id:11, title:"Stanley Quencher",  sub:"H2.0 40oz Tumbler",            cat:"Home",        img:"https://images.unsplash.com/photo-1635348729200-8b0f2bb00f31?w=500&h=400&fit=crop", was:40,   now:19,  store:"Target",    storeLogo:"🎯", pct:52, timer:"02:18:00", badge:"FLASH",    hot:true  },
-  { id:12, title:"Beats Studio Pro",  sub:"Wireless Headphones, Black",   cat:"Electronics", img:"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=400&fit=crop", was:349,  now:179, store:"Best Buy",  storeLogo:"💛", pct:49, timer:null,       badge:"SALE",     hot:true  },
+const DEALS_DATA = [
+  { id:1,  title:"Sony WH-1000XM5",    sub:"Industry-leading noise cancellation",   cat:"Electronics", img:"https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800&h=600&fit=crop&q=90", was:349,  now:199, store:"Amazon",   pct:43, hot:true,  timer:"05:14:22", code:"SONY43",  accent:"#6EE7B7" },
+  { id:2,  title:"Nike Air Max 270",   sub:"Lightweight everyday running shoe",     cat:"Fashion",     img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=600&fit=crop&q=90", was:150,  now:74,  store:"Nike",     pct:51, hot:true,  timer:null,       code:"NIKE51",  accent:"#FCA5A5" },
+  { id:3,  title:"iPad 10th Gen",      sub:"64GB Wi-Fi — Sky Blue",                 cat:"Electronics", img:"https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800&h=600&fit=crop&q=90", was:449,  now:329, store:"Best Buy", pct:27, hot:true,  timer:"03:45:10", code:"IPAD27",  accent:"#93C5FD" },
+  { id:4,  title:"Dyson V11",          sub:"Cordless vacuum, 60-min runtime",       cat:"Home",        img:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop&q=90", was:599,  now:369, store:"Dyson",    pct:38, hot:true,  timer:"08:10:00", code:"DYSON38", accent:"#FCD34D" },
+  { id:5,  title:"MacBook Air M2",     sub:"13-inch Midnight, 8-core GPU",          cat:"Electronics", img:"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=600&fit=crop&q=90", was:1099, now:849, store:"Apple",    pct:23, hot:false, timer:null,       code:"MAC23",   accent:"#C4B5FD" },
+  { id:6,  title:"Stanley Quencher",  sub:"40oz H2.0 Flow State Tumbler",          cat:"Home",        img:"https://images.unsplash.com/photo-1635348729200-8b0f2bb00f31?w=800&h=600&fit=crop&q=90", was:40,   now:19,  store:"Target",   pct:52, hot:true,  timer:"02:18:44", code:"STAN52",  accent:"#6EE7B7" },
+  { id:7,  title:"Levi's 501 Jeans",  sub:"Original straight fit, stonewash",      cat:"Fashion",     img:"https://images.unsplash.com/photo-1542272604-787c3835535d?w=800&h=600&fit=crop&q=90", was:89,   now:39,  store:"Levi's",   pct:56, hot:false, timer:null,       code:"LEVI56",  accent:"#93C5FD" },
+  { id:8,  title:"Kindle Paperwhite", sub:"16GB waterproof, 3-month battery",      cat:"Electronics", img:"https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=600&fit=crop&q=90", was:139,  now:84,  store:"Amazon",   pct:40, hot:false, timer:"03:20:00", code:"KIND40",  accent:"#FCA5A5" },
+  { id:9,  title:"KitchenAid Mixer",  sub:"5-Qt tilt-head, Empire Red",            cat:"Home",        img:"https://images.unsplash.com/photo-1556909211-36987daf7b4d?w=800&h=600&fit=crop&q=90", was:449,  now:279, store:"W.Sonoma", pct:38, hot:true,  timer:null,       code:"KAID38",  accent:"#FCD34D" },
+  { id:10, title:"Beats Studio Pro",  sub:"Wireless ANC, USB-C, 40hr battery",     cat:"Electronics", img:"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=600&fit=crop&q=90", was:349,  now:179, store:"Best Buy", pct:49, hot:true,  timer:null,       code:"BEAT49",  accent:"#C4B5FD" },
+  { id:11, title:"Adidas Ultraboost", sub:"Premium running, Primeknit upper",      cat:"Fashion",     img:"https://images.unsplash.com/photo-1608231387042-66d1773d3028?w=800&h=600&fit=crop&q=90", was:190,  now:109, store:"Adidas",   pct:43, hot:false, timer:"04:55:00", code:"ULTR43",  accent:"#6EE7B7" },
+  { id:12, title:"Instant Pot Duo",   sub:"7-in-1 electric pressure cooker",       cat:"Home",        img:"https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop&q=90", was:99,   now:49,  store:"Walmart",  pct:50, hot:false, timer:null,       code:"INST50",  accent:"#FCA5A5" },
 ];
 
-const BADGE_META = {
-  HOT:     { label:"🔥 Hot",     bg:"#FF3B5C", text:"#fff" },
-  FLASH:   { label:"⚡ Flash",   bg:"#00C06A", text:"#fff" },
-  TRENDING:{ label:"📈 Trending",bg:"#FF6B00", text:"#fff" },
-  SALE:    { label:"🏷 Sale",    bg:"#6366F1", text:"#fff" },
-  DEAL:    { label:"💸 Deal",    bg:"#0EA5E9", text:"#fff" },
-};
-
 const CATS = ["All","Electronics","Fashion","Home"];
-const fp  = p => `$${Number(p).toFixed(0)}`;
+const fp = p => `$${Number(p).toFixed(0)}`;
 const uid = () => Math.random().toString(36).slice(2,9);
 
-// ─── Theme tokens ─────────────────────────────────────────────────
-const THEMES = {
-  light: {
-    bg:       "#F8F8FC",
-    surface:  "#FFFFFF",
-    surface2: "#F2F2F8",
-    border:   "#EBEBF0",
-    text:     "#0F0F18",
-    text2:    "#6B6B80",
-    text3:    "#AEAEBB",
-    accent:   "#6366F1",
-    accentBg: "#EEF0FF",
-    nav:      "rgba(255,255,255,0.92)",
-    header:   "rgba(248,248,252,0.92)",
-    shadow:   "rgba(0,0,0,0.07)",
-    shadowMd: "rgba(0,0,0,0.12)",
-  },
-  dark: {
-    bg:       "#0C0C14",
-    surface:  "#15151F",
-    surface2: "#1E1E2C",
-    border:   "#2A2A3A",
-    text:     "#F0F0FF",
-    text2:    "#8888AA",
-    text3:    "#4A4A66",
-    accent:   "#818CF8",
-    accentBg: "#1E1E3A",
-    nav:      "rgba(15,15,22,0.94)",
-    header:   "rgba(12,12,20,0.94)",
-    shadow:   "rgba(0,0,0,0.4)",
-    shadowMd: "rgba(0,0,0,0.6)",
-  }
+// ─── Design tokens ────────────────────────────────────────────────
+const DARK = {
+  bg:     "#080810",
+  s1:     "#0F0F1A",
+  s2:     "#151524",
+  s3:     "#1C1C2E",
+  s4:     "#242438",
+  border: "rgba(255,255,255,.07)",
+  borderHov: "rgba(255,255,255,.13)",
+  text:   "#F0EFFF",
+  text2:  "#8B8AA8",
+  text3:  "#44435A",
+  glow:   "rgba(110,231,183,.12)",
+};
+
+const LIGHT = {
+  bg:     "#F7F6FF",
+  s1:     "#FFFFFF",
+  s2:     "#F0EFFA",
+  s3:     "#E8E7F5",
+  s4:     "#DDDCEE",
+  border: "rgba(0,0,0,.08)",
+  borderHov: "rgba(0,0,0,.15)",
+  text:   "#0A0A18",
+  text2:  "#5A5978",
+  text3:  "#AAAACC",
+  glow:   "rgba(110,231,183,.08)",
 };
 
 // ─── CSS ──────────────────────────────────────────────────────────
-const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@700&display=swap');
+const makeCSS = (dark) => {
+  const c = dark ? DARK : LIGHT;
+  return `
+    @import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Mona+Sans:wght@300;400;500;600&display=swap');
+    @import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&f[]=satoshi@300,400,500&display=swap');
 
-  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
-  html { scroll-behavior:smooth; }
-  body { font-family:'Outfit',sans-serif; overscroll-behavior-y:none; }
-  ::-webkit-scrollbar { width:6px; height:6px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:rgba(128,128,160,0.3); border-radius:3px; }
-  input, select, button, textarea { font-family:inherit; -webkit-appearance:none; }
-  input:focus, select:focus, textarea:focus { outline:none; }
-  img { display:block; }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'Satoshi','DM Sans',system-ui,sans-serif;
+      background:${c.bg};
+      color:${c.text};
+      min-height:100vh;
+      overscroll-behavior-y:none;
+      -webkit-font-smoothing:antialiased;
+    }
+    ::-webkit-scrollbar { width:3px; height:3px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:${c.s4}; border-radius:2px; }
+    img { display:block; }
+    input,select,button,textarea { font-family:inherit; -webkit-appearance:none; }
+    input:focus,select:focus { outline:none; }
 
-  /* Animations */
-  @keyframes fadeUp    { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
-  @keyframes sheetUp   { from{transform:translateY(100%)} to{transform:translateY(0)} }
-  @keyframes scaleIn   { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
-  @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.4} }
-  @keyframes shimmer   { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-  @keyframes timerBlink{ 0%,100%{opacity:1} 50%{opacity:.55} }
-  @keyframes spinOnce  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    /* Noise texture overlay */
+    body::before {
+      content:'';
+      position:fixed;inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events:none;z-index:0;opacity:${dark?".4":".25"};
+    }
 
-  .tap { transition:transform .12s ease,opacity .12s ease; cursor:pointer; }
-  .tap:active { transform:scale(.93); opacity:.75; }
-  .card-hover { transition:transform .22s cubic-bezier(.34,1.2,.64,1), box-shadow .22s ease; }
-  .card-hover:hover { transform:translateY(-4px); }
-  .card-hover:active { transform:scale(.98); }
-  .live { animation:pulse 2s ease-in-out infinite; }
-  .timer { animation:timerBlink 1s ease-in-out infinite; font-family:'JetBrains Mono',monospace; }
+    @keyframes fadeUp    { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp   { from{transform:translateY(100%)} to{transform:translateY(0)} }
+    @keyframes scaleIn   { from{opacity:0;transform:scale(.95) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    @keyframes glow      { 0%,100%{opacity:.6} 50%{opacity:1} }
+    @keyframes spin      { to{transform:rotate(360deg)} }
+    @keyframes ticker    { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+    @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.25} }
+    @keyframes shimmer   { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
 
-  /* Responsive grid */
-  .deals-grid {
-    display:grid;
-    gap:20px;
-    grid-template-columns:1fr;
-  }
-  @media(min-width:600px) {
-    .deals-grid { grid-template-columns:repeat(2,1fr); }
-  }
-  @media(min-width:900px) {
-    .deals-grid { grid-template-columns:repeat(3,1fr); }
-  }
-  @media(min-width:1200px) {
-    .deals-grid { grid-template-columns:repeat(4,1fr); }
-  }
+    .reveal { animation:fadeUp .6s cubic-bezier(.22,1,.36,1) both; }
+    .tap { transition:transform .14s cubic-bezier(.34,1.2,.64,1),opacity .14s ease; cursor:pointer; }
+    .tap:active { transform:scale(.92)!important; opacity:.7; }
 
-  /* Desktop sidebar layout */
-  .app-layout {
-    display:flex;
-    flex-direction:column;
-    min-height:100vh;
-  }
-  @media(min-width:768px) {
-    .app-layout { flex-direction:row; }
-    .sidebar { display:flex!important; }
-    .mobile-nav { display:none!important; }
-    .main-content { margin-left:220px; }
-  }
-  @media(max-width:767px) {
-    .sidebar { display:none!important; }
-    .main-content { margin-left:0; padding-bottom:80px; }
-  }
+    .card {
+      transition:transform .3s cubic-bezier(.34,1.1,.64,1), box-shadow .3s ease, border-color .2s ease;
+    }
+    .card:hover {
+      transform:translateY(-6px) scale(1.008);
+      border-color:${c.borderHov}!important;
+      box-shadow:0 24px 60px rgba(0,0,0,${dark?".6":".12"}),0 0 0 1px ${c.borderHov};
+    }
+    .card:active { transform:scale(.98) translateY(0); }
 
-  /* Sheet backdrop */
-  .sheet-backdrop {
-    position:fixed; inset:0; z-index:900;
-    animation:fadeIn .2s ease;
-  }
-  .sheet-panel {
-    position:absolute; bottom:0; left:0; right:0;
-    border-radius:28px 28px 0 0;
-    padding:0 22px 48px;
-    animation:sheetUp .38s cubic-bezier(.32,.72,0,1);
-    max-height:92vh; overflow-y:auto;
-  }
-  .modal-panel {
-    position:absolute; top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    border-radius:24px;
-    padding:32px;
-    animation:scaleIn .25s cubic-bezier(.34,1.2,.64,1);
-    width:min(480px,calc(100vw - 40px));
-    max-height:90vh; overflow-y:auto;
-  }
-  @media(min-width:768px) {
-    .sheet-panel { max-width:560px; left:50%; right:auto; transform:translateX(-50%); border-radius:24px 24px 0 0; }
-  }
-`;
+    .page {
+      max-width:1320px;
+      margin:0 auto;
+      padding:0 20px;
+    }
+    @media(min-width:640px)  { .page { padding:0 32px; } }
+    @media(min-width:1024px) { .page { padding:0 56px; } }
+
+    /* Responsive deal grid */
+    .deal-grid {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:16px;
+    }
+    @media(min-width:520px)  { .deal-grid { grid-template-columns:repeat(2,1fr); } }
+    @media(min-width:900px)  { .deal-grid { grid-template-columns:repeat(3,1fr); } }
+    @media(min-width:1200px) { .deal-grid { grid-template-columns:repeat(4,1fr); } }
+
+    .overlay { position:fixed;inset:0;z-index:900; animation:fadeIn .2s ease; }
+    .sheet {
+      position:absolute;bottom:0;left:0;right:0;
+      border-radius:28px 28px 0 0;
+      padding:0 22px 52px;
+      animation:slideUp .4s cubic-bezier(.32,.72,0,1);
+      max-height:92vh;overflow-y:auto;
+    }
+    .modal {
+      position:absolute;top:50%;left:50%;
+      transform:translate(-50%,-50%);
+      border-radius:24px;
+      padding:32px;
+      animation:scaleIn .28s cubic-bezier(.34,1.2,.64,1);
+      width:min(500px,calc(100vw - 32px));
+      max-height:90vh;overflow-y:auto;
+    }
+    @media(min-width:768px) {
+      .sheet { max-width:580px;left:50%;right:auto;transform:translateX(-50%); }
+    }
+
+    .ticker-track { display:flex;animation:ticker 30s linear infinite;width:max-content; }
+    .ticker-track:hover { animation-play-state:paused; }
+    .live-dot { animation:pulse 2s ease-in-out infinite; }
+
+    @media(max-width:767px) { .desktop-only{display:none!important;} }
+    @media(min-width:768px) { .mobile-only{display:none!important;} }
+
+    .glass {
+      background:${dark?"rgba(15,15,26,.8)":"rgba(255,255,255,.8)"};
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+    }
+
+    /* Gradient text */
+    .grad { background:linear-gradient(135deg,#6EE7B7,#93C5FD,#C4B5FD); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+    /* Skeleton shimmer */
+    .skel { background:linear-gradient(90deg,${c.s2} 0%,${c.s3} 50%,${c.s2} 100%); background-size:400px 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
+
+    .field {
+      width:100%;padding:13px 16px;
+      border-radius:14px;
+      border:1.5px solid ${c.border};
+      background:${c.s2};
+      color:${c.text};
+      font-size:15px;font-weight:400;
+      margin-bottom:12px;display:block;
+      transition:border .15s,box-shadow .15s;
+    }
+    .field:focus {
+      border-color:#6EE7B7;
+      box-shadow:0 0 0 3px rgba(110,231,183,.15);
+    }
+  `;
+};
 
 // ─── useTheme ──────────────────────────────────────────────────────
 function useTheme() {
-  const [dark, setDark] = useState(() => {
-    try { return localStorage.getItem("nd-theme")==="dark"; } catch { return false; }
-  });
-  const toggle = () => setDark(d => {
-    try { localStorage.setItem("nd-theme", !d?"dark":"light"); } catch {}
-    return !d;
-  });
-  const t = dark ? THEMES.dark : THEMES.light;
-  return { dark, toggle, t };
+  const [dark,setDark] = useState(()=>{ try{return localStorage.getItem("nd3-dark")!=="0";}catch{return true;} });
+  const toggle = ()=>setDark(d=>{try{localStorage.setItem("nd3-dark",!d?"1":"0");}catch{}return !d;});
+  return { dark, toggle, c:dark?DARK:LIGHT };
 }
 
 // ─── useBreakpoint ─────────────────────────────────────────────────
 function useBreakpoint() {
-  const [w, setW] = useState(typeof window!=="undefined" ? window.innerWidth : 1200);
-  useEffect(() => {
-    const fn = () => setW(window.innerWidth);
-    window.addEventListener("resize", fn);
-    return () => window.removeEventListener("resize", fn);
-  }, []);
-  return { isDesktop: w >= 768, isMobile: w < 768, isWide: w >= 1200, width: w };
+  const [w,setW] = useState(typeof window!=="undefined"?window.innerWidth:1280);
+  useEffect(()=>{ const f=()=>setW(window.innerWidth); window.addEventListener("resize",f); return ()=>window.removeEventListener("resize",f); },[]);
+  return { isDesktop:w>=768, isMobile:w<768, isWide:w>=1100 };
 }
 
-// ─── Timer component ───────────────────────────────────────────────
-function TimerDisplay({ time, t }) {
-  const [val, setVal] = useState(time);
-  useEffect(() => {
-    const iv = setInterval(() => {
-      setVal(p => {
-        const [h,m,s] = p.split(":").map(Number);
-        let ts = h*3600+m*60+s-1; if(ts<0) ts=0;
-        return [Math.floor(ts/3600),Math.floor((ts%3600)/60),ts%60].map(n=>String(n).padStart(2,"0")).join(":");
-      });
-    }, 1000);
-    return () => clearInterval(iv);
-  }, []);
-  return (
-    <span className="timer" style={{fontSize:11,color:t.text2,background:t.surface2,padding:"3px 8px",borderRadius:8,letterSpacing:.5}}>
-      ⏱ {val}
-    </span>
-  );
+// ─── Timer ────────────────────────────────────────────────────────
+function Timer({ time, style }) {
+  const [v,setV] = useState(time);
+  useEffect(()=>{
+    const iv=setInterval(()=>setV(p=>{
+      const [h,m,s]=p.split(":").map(Number); let t=h*3600+m*60+s-1; if(t<0)t=0;
+      return [Math.floor(t/3600),Math.floor((t%3600)/60),t%60].map(n=>String(n).padStart(2,"0")).join(":");
+    }),1000);
+    return ()=>clearInterval(iv);
+  },[]);
+  return <span style={{fontVariantNumeric:"tabular-nums",...style}}>{v}</span>;
 }
 
-// ─── DealCard ──────────────────────────────────────────────────────
-function DealCard({ d, wishlist, tracked, onWish, onTrack, onGet, t, delay=0 }) {
-  const saved    = wishlist.includes(d.id);
-  const tracking = tracked.includes(d.id);
-  const saving   = d.was - d.now;
-  const bm       = BADGE_META[d.badge] || BADGE_META.DEAL;
-
+// ─── Ticker ───────────────────────────────────────────────────────
+function Ticker({ deals }) {
+  const hot = deals.filter(d=>d.hot);
+  const items = [...hot,...hot];
   return (
-    <div className="card-hover" style={{
-      background:t.surface, borderRadius:20,
-      border:`1px solid ${t.border}`,
-      boxShadow:`0 2px 16px ${t.shadow}`,
-      overflow:"hidden",
-      animation:`fadeUp .4s ${delay}s both`,
-      display:"flex", flexDirection:"column",
-    }}>
-      {/* Image */}
-      <div style={{position:"relative",height:180,background:t.surface2,overflow:"hidden",flexShrink:0}}>
-        <img src={d.img} alt={d.title}
-          style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
-          onError={e=>e.target.style.display="none"}/>
-        {/* Gradient overlay */}
-        <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.5) 0%,transparent 50%)"}}/>
-        {/* Top badges */}
-        <div style={{position:"absolute",top:12,left:12,display:"flex",flexDirection:"column",gap:5}}>
-          <span style={{background:bm.bg,color:bm.text,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,letterSpacing:.3}}>
-            {bm.label}
+    <div style={{background:"#6EE7B7",overflow:"hidden",height:36,display:"flex",alignItems:"center",position:"relative",zIndex:200}}>
+      <div className="ticker-track">
+        {items.map((d,i)=>(
+          <span key={i} style={{display:"inline-flex",alignItems:"center",gap:12,padding:"0 32px",whiteSpace:"nowrap",fontSize:12,fontWeight:700,letterSpacing:".06em",color:"#080810",textTransform:"uppercase"}}>
+            <span style={{background:"#080810",color:"#6EE7B7",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20}}>-{d.pct}%</span>
+            {d.title}
+            <span style={{opacity:.3}}>·</span>
           </span>
-          {d.timer && <TimerDisplay time={d.timer} t={t}/>}
-        </div>
-        {/* Discount */}
-        <div style={{position:"absolute",top:12,right:12,background:"rgba(0,0,0,.6)",backdropFilter:"blur(8px)",color:"#fff",fontSize:12,fontWeight:800,padding:"4px 10px",borderRadius:12}}>
-          -{d.pct}%
-        </div>
-        {/* Heart */}
-        <button className="tap" onClick={()=>onWish(d.id)}
-          style={{position:"absolute",bottom:12,right:12,width:32,height:32,borderRadius:"50%",border:"none",background:saved?"#FF3B5C":"rgba(0,0,0,.45)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>
-          {saved ? "❤️" : "🤍"}
-        </button>
-        {/* Store chip */}
-        <div style={{position:"absolute",bottom:12,left:12,background:"rgba(0,0,0,.55)",backdropFilter:"blur(6px)",borderRadius:10,padding:"4px 10px",display:"flex",alignItems:"center",gap:5}}>
-          <span style={{fontSize:13}}>{d.storeLogo}</span>
-          <span style={{fontSize:11,color:"#fff",fontWeight:600}}>{d.store}</span>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div style={{padding:"14px 16px 14px",flex:1,display:"flex",flexDirection:"column",gap:6}}>
-        <div style={{fontSize:11,fontWeight:600,color:t.accent,letterSpacing:.5,textTransform:"uppercase"}}>{d.cat}</div>
-        <div style={{fontWeight:800,fontSize:16,color:t.text,lineHeight:1.25,letterSpacing:"-.2px"}}>{d.title}</div>
-        <div style={{fontSize:13,color:t.text3,fontStyle:"italic",flex:1}}>{d.sub}</div>
-
-        {/* Price row */}
-        <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
-          <span style={{fontWeight:900,fontSize:24,color:t.text,letterSpacing:"-.8px"}}>{fp(d.now)}</span>
-          <span style={{fontSize:13,color:t.text3,textDecoration:"line-through"}}>{fp(d.was)}</span>
-          <span style={{marginLeft:"auto",fontSize:12,color:"#00C06A",fontWeight:700}}>Save {fp(saving)}</span>
-        </div>
-
-        {/* Actions */}
-        <div style={{display:"flex",gap:8,marginTop:4}}>
-          <button className="tap" onClick={()=>onTrack(d.id)}
-            style={{flex:1,padding:"9px 0",borderRadius:12,border:`1.5px solid ${tracking?"#00C06A":t.border}`,background:tracking?`#00C06A18`:"transparent",color:tracking?"#00C06A":t.text3,fontSize:12,fontWeight:700}}>
-            {tracking ? "🔔 On" : "Track"}
-          </button>
-          <button className="tap" onClick={()=>onGet(d)}
-            style={{flex:2,padding:"9px 0",borderRadius:12,border:"none",background:t.accent,color:"#fff",fontSize:13,fontWeight:800,boxShadow:`0 4px 16px ${t.accent}55`}}>
-            Get Deal →
-          </button>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── Deal Code Sheet ───────────────────────────────────────────────
-function DealSheet({ d, t, onClose }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(d.code||"NODEAL").catch(()=>{});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-  const code = d.code || `SAVE${d.pct}`;
-  const saving = d.was - d.now;
-  return (
-    <div className="sheet-backdrop" onClick={onClose} style={{background:"rgba(0,0,0,.6)",backdropFilter:"blur(10px)"}}>
-      <div className="sheet-panel" onClick={e=>e.stopPropagation()} style={{background:t.surface,borderTop:`1px solid ${t.border}`}}>
-        <div style={{width:38,height:4,borderRadius:2,background:t.border,margin:"14px auto 22px"}}/>
+// ─── Deal Card ────────────────────────────────────────────────────
+function DealCard({ d, wishlist, tracked, onWish, onTrack, onGet, c, delay=0, dark }) {
+  const saved    = wishlist.includes(d.id);
+  const tracking = tracked.includes(d.id);
+  const saving   = d.was - d.now;
 
-        {/* Product summary */}
-        <div style={{display:"flex",gap:14,alignItems:"center",marginBottom:24}}>
-          <div style={{width:68,height:68,borderRadius:16,overflow:"hidden",background:t.surface2,flexShrink:0}}>
-            <img src={d.img} alt={d.title} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+  return (
+    <div className="card reveal" onClick={()=>onGet(d)}
+      style={{
+        borderRadius:20,overflow:"hidden",
+        background:c.s1,
+        border:`1px solid ${c.border}`,
+        animationDelay:`${delay}s`,
+        display:"flex",flexDirection:"column",
+        position:"relative",cursor:"pointer",
+        boxShadow:dark?`0 4px 24px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04)`:`0 4px 20px rgba(0,0,0,.07)`,
+      }}>
+
+      {/* Image — tall, immersive */}
+      <div style={{position:"relative",overflow:"hidden",flexShrink:0}} onClick={e=>{e.stopPropagation();onGet(d);}}>
+        <div style={{paddingBottom:"72%",position:"relative",background:c.s2}}>
+          <img src={d.img} alt={d.title}
+            style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",transition:"transform .6s cubic-bezier(.25,.46,.45,.94)"}}
+            onError={e=>e.target.style.display="none"}/>
+          {/* Rich gradient overlay */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,transparent 30%,${dark?"rgba(8,8,16,.92)":"rgba(10,10,24,.7)"} 100%)`}}/>
+          {/* Subtle top vignette */}
+          <div style={{position:"absolute",top:0,left:0,right:0,height:80,background:"linear-gradient(to bottom,rgba(0,0,0,.3),transparent)"}}/>
+        </div>
+
+        {/* Overlaid price — bottom of image */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"16px 18px"}}>
+          <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
+            <div>
+              <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:2}}>
+                <span style={{fontSize:28,fontWeight:900,color:"#fff",letterSpacing:"-1px",lineHeight:1}}>{fp(d.now)}</span>
+                <span style={{fontSize:14,color:"rgba(255,255,255,.45)",textDecoration:"line-through",fontWeight:400}}>{fp(d.was)}</span>
+              </div>
+              <div style={{fontSize:12,fontWeight:600,color:d.accent||"#6EE7B7"}}>Save {fp(saving)}</div>
+            </div>
+            {/* Discount badge */}
+            <div style={{background:d.accent||"#6EE7B7",borderRadius:10,padding:"6px 12px",boxShadow:`0 4px 16px ${d.accent||"#6EE7B7"}55`}}>
+              <span style={{fontSize:14,fontWeight:900,color:"#080810",letterSpacing:"-.5px"}}>-{d.pct}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Top-left: store pill + hot badge */}
+        <div style={{position:"absolute",top:12,left:12,display:"flex",flexDirection:"column",gap:5,alignItems:"flex-start"}}>
+          {d.hot && (
+            <div style={{background:"rgba(0,0,0,.6)",backdropFilter:"blur(10px)",borderRadius:20,padding:"4px 10px",border:"1px solid rgba(255,255,255,.12)",display:"flex",alignItems:"center",gap:5}}>
+              <span style={{fontSize:10}}>🔥</span>
+              <span style={{fontSize:10,fontWeight:700,color:"#fff",letterSpacing:".05em",textTransform:"uppercase"}}>Hot deal</span>
+            </div>
+          )}
+          {d.timer && (
+            <div style={{background:"rgba(0,0,0,.65)",backdropFilter:"blur(10px)",borderRadius:20,padding:"4px 10px",border:"1px solid rgba(255,255,255,.1)"}}>
+              <Timer time={d.timer} style={{fontSize:11,fontWeight:700,color:d.accent||"#6EE7B7",letterSpacing:".04em"}}/>
+            </div>
+          )}
+        </div>
+
+        {/* Heart */}
+        <button className="tap" onClick={e=>{e.stopPropagation();onWish(d.id);}}
+          style={{position:"absolute",top:12,right:12,width:36,height:36,borderRadius:"50%",border:"none",background:saved?"#fff":"rgba(0,0,0,.55)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:saved?"0 2px 12px rgba(255,59,92,.4)":"none"}}>
+          {saved?"❤️":"🤍"}
+        </button>
+      </div>
+
+      {/* Body */}
+      <div style={{padding:"16px 18px 18px",flex:1,display:"flex",flexDirection:"column",gap:10}}>
+        {/* Store + category */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:".07em",textTransform:"uppercase",color:c.text3}}>{d.store}</span>
+          <span style={{fontSize:11,fontWeight:600,color:d.accent||"#6EE7B7",background:`${d.accent||"#6EE7B7"}18`,padding:"2px 8px",borderRadius:6}}>{d.cat}</span>
+        </div>
+
+        {/* Title */}
+        <div>
+          <div style={{fontSize:17,fontWeight:800,color:c.text,lineHeight:1.2,letterSpacing:"-.3px",marginBottom:4}}>{d.title}</div>
+          <div style={{fontSize:13,color:c.text2,lineHeight:1.4,fontWeight:400}}>{d.sub}</div>
+        </div>
+
+        {/* Action row */}
+        <div style={{display:"flex",gap:8,marginTop:"auto",paddingTop:4}} onClick={e=>e.stopPropagation()}>
+          <button className="tap" onClick={()=>onTrack(d.id)}
+            style={{flex:1,padding:"10px 0",borderRadius:12,border:`1.5px solid ${tracking?d.accent||"#6EE7B7":c.border}`,background:tracking?`${d.accent||"#6EE7B7"}15`:"transparent",color:tracking?d.accent||"#6EE7B7":c.text2,fontSize:12,fontWeight:700,transition:"all .15s",letterSpacing:".02em"}}>
+            {tracking?"🔔 On":"Track"}
+          </button>
+          <button className="tap" onClick={()=>onGet(d)}
+            style={{flex:2,padding:"10px 0",borderRadius:12,border:"none",background:dark?c.s4:"#0A0A18",color:dark?"#F0EFFF":"#fff",fontSize:13,fontWeight:700,letterSpacing:".02em",boxShadow:dark?"none":`0 2px 12px rgba(0,0,0,.2)`}}>
+            Get Deal →
+          </button>
+        </div>
+      </div>
+
+      {/* Glow accent line at bottom */}
+      <div style={{height:2,background:`linear-gradient(90deg,transparent,${d.accent||"#6EE7B7"},transparent)`,opacity:.4,flexShrink:0}}/>
+    </div>
+  );
+}
+
+// ─── Coupon Sheet ─────────────────────────────────────────────────
+function DealSheet({ d, c, isDesktop, dark, onClose }) {
+  const [copied,setCopied] = useState(false);
+  const saving = d.was - d.now;
+  const code = d.code || `SAVE${d.pct}`;
+  const copy = () => {
+    navigator.clipboard.writeText(code).catch(()=>{});
+    setCopied(true);
+    setTimeout(()=>setCopied(false),2500);
+  };
+  const ac = d.accent||"#6EE7B7";
+  const Cls = isDesktop?"modal":"sheet";
+  return (
+    <div className="overlay" onClick={onClose} style={{background:"rgba(0,0,0,.7)",backdropFilter:"blur(16px)"}}>
+      <div className={Cls} onClick={e=>e.stopPropagation()} style={{background:c.s1,border:`1px solid ${c.border}`,boxShadow:dark?"0 32px 80px rgba(0,0,0,.7)":"0 24px 60px rgba(0,0,0,.2)"}}>
+        {!isDesktop && <div style={{width:38,height:4,borderRadius:2,background:c.s4,margin:"16px auto 24px"}}/>}
+        {isDesktop && <button onClick={onClose} className="tap" style={{position:"absolute",top:20,right:20,width:32,height:32,borderRadius:10,border:`1px solid ${c.border}`,background:c.s2,color:c.text2,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
+
+        {/* Product row */}
+        <div style={{display:"flex",gap:16,alignItems:"center",marginBottom:28}}>
+          <div style={{width:80,height:80,borderRadius:16,overflow:"hidden",background:c.s2,flexShrink:0,boxShadow:`0 0 0 1px ${c.border}`}}>
+            <img src={d.img} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:800,fontSize:16,color:t.text,marginBottom:2}}>{d.title}</div>
-            <div style={{fontSize:13,color:t.text2,marginBottom:6}}>{d.store}</div>
-            <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-              <span style={{fontWeight:900,fontSize:20,color:t.accent}}>{fp(d.now)}</span>
-              <span style={{fontSize:13,color:t.text3,textDecoration:"line-through"}}>{fp(d.was)}</span>
-              <span style={{fontSize:12,background:`${t.accent}22`,color:t.accent,padding:"2px 8px",borderRadius:8,fontWeight:700}}>-{d.pct}%</span>
+            <div style={{fontSize:19,fontWeight:800,color:c.text,marginBottom:3,letterSpacing:"-.3px"}}>{d.title}</div>
+            <div style={{fontSize:13,color:c.text2,marginBottom:10}}>{d.store} · {d.cat}</div>
+            <div style={{display:"flex",alignItems:"baseline",gap:10}}>
+              <span style={{fontSize:24,fontWeight:900,color:c.text,letterSpacing:"-.8px"}}>{fp(d.now)}</span>
+              <span style={{fontSize:14,color:c.text3,textDecoration:"line-through"}}>{fp(d.was)}</span>
+              <span style={{fontSize:12,background:`${ac}20`,color:ac,padding:"3px 10px",borderRadius:8,fontWeight:700}}>-{d.pct}%</span>
             </div>
           </div>
         </div>
 
         {/* Step 1 */}
-        <div style={{fontSize:11,fontWeight:700,color:t.text3,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>Step 1 — Copy your code</div>
-        <div style={{display:"flex",alignItems:"center",gap:12,background:t.surface2,borderRadius:16,padding:"14px 16px",border:`2px dashed ${copied?"#00C06A":t.accent}`,marginBottom:copied?6:20,transition:"border-color .3s"}}>
-          <span style={{flex:1,fontFamily:"'JetBrains Mono',monospace",fontSize:18,fontWeight:700,color:copied?"#00C06A":t.text,letterSpacing:2,transition:"color .3s"}}>{code}</span>
-          <button className="tap" onClick={copy}
-            style={{padding:"9px 20px",borderRadius:10,border:"none",background:copied?"#00C06A":t.accent,color:"#fff",fontWeight:700,fontSize:13,boxShadow:`0 2px 10px ${copied?"#00C06A":t.accent}44`}}>
-            {copied ? "Copied!" : "Copy"}
+        <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:c.text3,marginBottom:12}}>Step 1 — Copy code</div>
+        <div onClick={copy} style={{display:"flex",alignItems:"center",gap:14,background:c.s2,borderRadius:16,padding:"16px 20px",border:`1.5px dashed ${copied?"#6EE7B7":c.border}`,marginBottom:copied?8:24,cursor:"pointer",transition:"all .25s",boxShadow:copied?`0 0 24px rgba(110,231,183,.2)`:"none"}}>
+          <span style={{flex:1,fontFamily:"'JetBrains Mono','Courier New',monospace",fontSize:22,fontWeight:700,color:copied?"#6EE7B7":c.text,letterSpacing:"3px",transition:"color .25s"}}>{code}</span>
+          <button className="tap" onClick={e=>{e.stopPropagation();copy();}}
+            style={{padding:"10px 22px",borderRadius:12,border:"none",background:copied?"#6EE7B7":dark?c.s4:"#0A0A18",color:copied?"#080810":dark?c.text:"#fff",fontWeight:700,fontSize:13,transition:"all .25s",boxShadow:copied?"0 4px 16px rgba(110,231,183,.4)":"none"}}>
+            {copied?"Copied!":"Copy"}
           </button>
         </div>
-        {copied && <div style={{fontSize:12,color:"#00C06A",fontWeight:700,marginBottom:16,paddingLeft:2}}>Paste at checkout — saves you {fp(saving)}</div>}
+        {copied && <div style={{fontSize:12,color:"#6EE7B7",fontWeight:600,marginBottom:20,paddingLeft:2}}>✓ Paste at checkout — save {fp(saving)}</div>}
 
         {/* Step 2 */}
-        <div style={{fontSize:11,fontWeight:700,color:t.text3,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>Step 2 — Go to store</div>
-        <button className="tap" onClick={()=>{copy();window.open(d.url||"#","_blank");}}
-          style={{width:"100%",padding:"16px",borderRadius:16,border:"none",background:t.accent,color:"#fff",fontWeight:800,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,boxShadow:`0 4px 20px ${t.accent}44`}}>
-          <span>{d.storeLogo}</span> Go to {d.store} →
+        <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:c.text3,marginBottom:12}}>Step 2 — Go to store</div>
+        <button className="tap" onClick={()=>{copy();window.open("#","_blank");}}
+          style={{width:"100%",padding:"16px",borderRadius:16,border:"none",background:"#6EE7B7",color:"#080810",fontWeight:800,fontSize:16,marginBottom:20,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 6px 28px rgba(110,231,183,.35)"}}>
+          Go to {d.store} →
         </button>
 
-        {/* Savings callout */}
-        <div style={{background:t.surface2,borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",gap:10,border:`1px solid ${t.border}`}}>
+        <div style={{background:c.s2,borderRadius:14,padding:"14px 18px",display:"flex",gap:12,alignItems:"center",border:`1px solid ${c.border}`}}>
           <span style={{fontSize:22}}>💰</span>
           <div>
-            <div style={{fontWeight:700,color:t.text,fontSize:14}}>You're saving {fp(saving)} on this deal</div>
-            <div style={{fontSize:12,color:t.text3,marginTop:1}}>Limited time · expires soon</div>
+            <div style={{fontSize:14,fontWeight:600,color:c.text}}>You save {fp(saving)} on this deal</div>
+            <div style={{fontSize:12,color:c.text3,marginTop:2}}>Limited time · code expires soon</div>
           </div>
         </div>
       </div>
@@ -337,54 +393,50 @@ function DealSheet({ d, t, onClose }) {
   );
 }
 
-// ─── Auth Modal/Sheet ──────────────────────────────────────────────
-function AuthModal({ mode, t, isDesktop, onClose, onAuth }) {
-  const [isLogin, setIsLogin] = useState(mode==="login");
-  const [form, setForm]       = useState({name:"",email:"",password:""});
-  const [prefs, setPrefs]     = useState({deals:true,drops:true,wish:true});
-  const [err, setErr]         = useState("");
+// ─── Auth ──────────────────────────────────────────────────────────
+function AuthSheet({ mode, c, dark, isDesktop, onClose, onAuth }) {
+  const [isLogin,setIsLogin] = useState(mode==="login");
+  const [form,setForm] = useState({name:"",email:"",password:""});
+  const [prefs,setPrefs] = useState({deals:true,drops:true,wish:true});
+  const [err,setErr] = useState("");
 
   const submit = () => {
-    if(!form.email||!form.password){setErr("Please fill in all fields");return;}
-    if(!isLogin&&!form.name){setErr("What should we call you?");return;}
+    if(!form.email||!form.password){setErr("Fill in all fields");return;}
+    if(!isLogin&&!form.name){setErr("What's your name?");return;}
     onAuth({name:form.name||form.email.split("@")[0],email:form.email,prefs});
   };
-
-  const inpSt = {
-    width:"100%",padding:"13px 16px",borderRadius:14,
-    border:`1.5px solid ${t.border}`,background:t.surface2,
-    color:t.text,fontSize:15,fontWeight:500,marginBottom:12,display:"block",transition:"border .15s"
-  };
-
-  const PanelClass = isDesktop ? "modal-panel" : "sheet-panel";
+  const Cls = isDesktop?"modal":"sheet";
 
   return (
-    <div className="sheet-backdrop" onClick={onClose} style={{background:"rgba(0,0,0,.65)",backdropFilter:"blur(12px)"}}>
-      <div className={PanelClass} onClick={e=>e.stopPropagation()} style={{background:t.surface,border:`1px solid ${t.border}`,...(!isDesktop?{borderTop:"none"}:{})}}>
-        {!isDesktop && <div style={{width:38,height:4,borderRadius:2,background:t.border,margin:"14px auto 22px"}}/>}
-        {isDesktop && <button onClick={onClose} style={{position:"absolute",top:16,right:16,width:32,height:32,borderRadius:10,border:`1px solid ${t.border}`,background:t.surface2,color:t.text2,fontSize:16,cursor:"pointer"}}>✕</button>}
+    <div className="overlay" onClick={onClose} style={{background:"rgba(0,0,0,.75)",backdropFilter:"blur(16px)"}}>
+      <div className={Cls} onClick={e=>e.stopPropagation()} style={{background:c.s1,border:`1px solid ${c.border}`}}>
+        {!isDesktop && <div style={{width:38,height:4,borderRadius:2,background:c.s4,margin:"16px auto 24px"}}/>}
+        {isDesktop && <button onClick={onClose} className="tap" style={{position:"absolute",top:20,right:20,width:32,height:32,borderRadius:10,border:`1px solid ${c.border}`,background:c.s2,color:c.text2,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
 
-        <div style={{textAlign:"center",marginBottom:24,marginTop:isDesktop?8:0}}>
-          <div style={{fontSize:36,marginBottom:8}}>{isLogin?"👋":"🎉"}</div>
-          <div style={{fontWeight:900,fontSize:24,color:t.text,marginBottom:4,letterSpacing:"-.4px"}}>{isLogin?"Welcome back":"Join nikkideals"}</div>
-          <div style={{color:t.text2,fontSize:14}}>{isLogin?"Your deals are waiting":"Free · alerts · wishlist · tracking"}</div>
+        <div style={{marginBottom:28}}>
+          <div style={{fontSize:28,fontWeight:900,color:c.text,letterSpacing:"-.5px",marginBottom:6,lineHeight:1.1}}>
+            {isLogin?"Welcome back.":"Create account."}
+          </div>
+          <div style={{fontSize:14,color:c.text2,lineHeight:1.5}}>
+            {isLogin?"Your deals are waiting.":"Free. No spam. Real savings."}
+          </div>
         </div>
 
-        {err && <div style={{background:"rgba(255,59,92,.12)",border:"1.5px solid rgba(255,59,92,.3)",borderRadius:12,padding:"11px 14px",color:"#FF3B5C",fontSize:13,fontWeight:700,marginBottom:14}}>⚠️ {err}</div>}
+        {err && <div style={{background:"rgba(248,113,113,.12)",border:"1px solid rgba(248,113,113,.25)",borderRadius:12,padding:"11px 14px",color:"#FCA5A5",fontSize:13,fontWeight:500,marginBottom:16}}>{err}</div>}
 
-        {!isLogin && <input placeholder="First name" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} style={inpSt} onFocus={e=>e.target.style.borderColor=t.accent} onBlur={e=>e.target.style.borderColor=t.border}/>}
-        <input placeholder="Email address" type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} style={inpSt} onFocus={e=>e.target.style.borderColor=t.accent} onBlur={e=>e.target.style.borderColor=t.border}/>
-        <input placeholder="Password" type="password" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} style={inpSt} onFocus={e=>e.target.style.borderColor=t.accent} onBlur={e=>e.target.style.borderColor=t.border}/>
+        {!isLogin && <input className="field" placeholder="First name" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>}
+        <input className="field" placeholder="Email address" type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}/>
+        <input className="field" placeholder="Password" type="password" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))}/>
 
         {!isLogin && (
-          <div style={{background:t.surface2,borderRadius:18,padding:"14px",marginBottom:16,border:`1px solid ${t.border}`}}>
-            <div style={{fontSize:11,fontWeight:700,color:t.text3,letterSpacing:"1.2px",textTransform:"uppercase",marginBottom:12}}>Alert preferences</div>
-            {[{k:"deals",l:"🔥 New hot deals"},{k:"drops",l:"📉 Price drops"},{k:"wish",l:"⭐ Wishlist updates"}].map(({k,l})=>(
+          <div style={{background:c.s2,borderRadius:16,padding:"16px",marginBottom:16,border:`1px solid ${c.border}`}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:c.text3,marginBottom:14}}>Alert me when</div>
+            {[{k:"deals",l:"New hot deals"},{k:"drops",l:"Price drops"},{k:"wish",l:"Wishlist updates"}].map(({k,l})=>(
               <div key={k} onClick={()=>setPrefs(p=>({...p,[k]:!p[k]}))}
-                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${t.border}`,cursor:"pointer"}}>
-                <span style={{color:t.text,fontSize:14,fontWeight:600}}>{l}</span>
-                <div style={{width:46,height:26,borderRadius:13,background:prefs[k]?t.accent:t.border,transition:"background .2s",position:"relative",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:prefs[k]?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}/>
+                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:`1px solid ${c.border}`,cursor:"pointer"}}>
+                <span style={{fontSize:14,color:c.text,fontWeight:400}}>{l}</span>
+                <div style={{width:46,height:25,borderRadius:13,background:prefs[k]?"#6EE7B7":c.s4,transition:"background .2s",position:"relative",flexShrink:0}}>
+                  <div style={{position:"absolute",top:3,left:prefs[k]?23:3,width:19,height:19,borderRadius:"50%",background:prefs[k]?"#080810":"#fff",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}/>
                 </div>
               </div>
             ))}
@@ -392,161 +444,135 @@ function AuthModal({ mode, t, isDesktop, onClose, onAuth }) {
         )}
 
         <button className="tap" onClick={submit}
-          style={{width:"100%",padding:"15px",borderRadius:16,border:"none",background:t.accent,color:"#fff",fontWeight:800,fontSize:16,marginBottom:14,boxShadow:`0 4px 20px ${t.accent}44`}}>
-          {isLogin ? "Sign In →" : "Create Account →"}
+          style={{width:"100%",padding:"15px",borderRadius:14,border:"none",background:"#6EE7B7",color:"#080810",fontWeight:800,fontSize:15,marginBottom:14,boxShadow:"0 6px 28px rgba(110,231,183,.35)"}}>
+          {isLogin?"Sign in →":"Create account →"}
         </button>
-        <div style={{textAlign:"center",color:t.text3,fontSize:13}}>
-          {isLogin ? "No account? " : "Already a member? "}
-          <span onClick={()=>{setIsLogin(!isLogin);setErr("");}} style={{color:t.accent,fontWeight:700,cursor:"pointer"}}>
-            {isLogin ? "Sign up free" : "Sign in"}
-          </span>
+        <div style={{textAlign:"center",fontSize:13,color:c.text3}}>
+          {isLogin?"No account? ":"Already a member? "}
+          <span onClick={()=>{setIsLogin(!isLogin);setErr("");}} style={{color:"#6EE7B7",fontWeight:600,cursor:"pointer"}}>{isLogin?"Sign up free":"Sign in"}</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Add Deal Sheet ────────────────────────────────────────────────
-const STORE_MAP = {
-  "amazon.com": {name:"Amazon",  logo:"🛒",url:"https://amazon.com"},
-  "target.com": {name:"Target",  logo:"🎯",url:"https://target.com"},
-  "bestbuy.com":{name:"Best Buy",logo:"💛",url:"https://bestbuy.com"},
-  "nike.com":   {name:"Nike",    logo:"✔", url:"https://nike.com"},
-  "apple.com":  {name:"Apple",   logo:"🍎",url:"https://apple.com"},
-  "walmart.com":{name:"Walmart", logo:"⭐",url:"https://walmart.com"},
+// ─── Add Deal ──────────────────────────────────────────────────────
+const SMAP = {
+  "amazon.com":{name:"Amazon",logo:"🛒"},"target.com":{name:"Target",logo:"🎯"},
+  "bestbuy.com":{name:"Best Buy",logo:"💛"},"nike.com":{name:"Nike",logo:"✔"},
+  "apple.com":{name:"Apple",logo:"🍎"},"walmart.com":{name:"Walmart",logo:"⭐"},
 };
 
-function AddDealSheet({ t, onClose, onAdd }) {
+function AddSheet({ c, dark, isDesktop, onClose, onAdd }) {
   const [step,setStep] = useState("url");
   const [url,setUrl]   = useState("");
-  const [aiErr,setAiErr] = useState("");
-  const [form,setForm] = useState({title:"",sub:"",was:"",now:"",code:"",badge:"HOT",cat:"Electronics",timer:"",img:"",store:"",storeLogo:"",url:""});
+  const [err,setErr]   = useState("");
+  const [form,setForm] = useState({title:"",sub:"",was:"",now:"",code:"",cat:"Electronics",timer:"",img:"",store:"",hot:false});
 
-  const detectStore = u => {
-    try {
-      const host = new URL(u).hostname.replace("www.","");
-      for(const [d,i] of Object.entries(STORE_MAP)) if(host.includes(d)) return {...i};
-    } catch {}
-    return {name:"Store",logo:"🔗",url:u};
-  };
+  const ds = u=>{ try{ const h=new URL(u).hostname.replace("www.",""); for(const[d,i]of Object.entries(SMAP))if(h.includes(d))return i; }catch{} return {name:"Store",logo:"🔗"}; };
 
-  const analyze = async () => {
-    if(!url.trim()) return;
-    setStep("loading"); setAiErr("");
-    const s = detectStore(url);
+  const analyze = async ()=>{
+    if(!url.trim())return;
+    setStep("loading");setErr("");
+    const s=ds(url);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,
-          messages:[{role:"user",content:`Product URL: ${url}\nReturn ONLY this JSON (no markdown):\n{"title":"","sub":"","was":0,"now":0,"code":"","cat":"Electronics","badge":"HOT","img":""}`}]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.find(b=>b.type==="text")?.text||"{}";
-      const p = JSON.parse(text.replace(/```json|```/g,"").trim());
-      setForm({...p,store:s.name,storeLogo:s.logo,url:s.url||url,timer:""});
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,
+          messages:[{role:"user",content:`URL: ${url}\nReturn ONLY JSON:\n{"title":"","sub":"","was":0,"now":0,"code":"","cat":"Electronics","img":""}`}]})});
+      const data=await res.json();
+      const p=JSON.parse((data.content?.find(b=>b.type==="text")?.text||"{}").replace(/```json|```/g,"").trim());
+      setForm({...p,was:Number(p.was)||0,now:Number(p.now)||0,store:s.name,storeLogo:s.logo,timer:"",hot:false});
       setStep("edit");
     } catch {
-      setForm(f=>({...f,store:s.name,storeLogo:s.logo,url:s.url||url}));
-      setAiErr("Auto-fill failed — please fill in manually.");
+      setForm(f=>({...f,store:s.name,storeLogo:s.logo}));
+      setErr("Auto-fill failed — fill in manually.");
       setStep("edit");
     }
   };
 
-  const save = () => {
-    if(!form.title||!form.now) return;
-    const was=Number(form.was)||0, now=Number(form.now)||0;
+  const save=()=>{
+    if(!form.title||!form.now)return;
+    const was=Number(form.was)||0,now=Number(form.now)||0;
     onAdd({id:Date.now(),title:form.title,sub:form.sub,cat:form.cat||"Electronics",
-      img:form.img||"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=400&fit=crop",
-      was,now,store:form.store,storeLogo:form.storeLogo,
-      pct:was>0?Math.round((1-now/was)*100):0,
-      timer:form.timer||null,badge:form.badge||"DEAL",
-      code:form.code,url:form.url,hot:false});
+      img:form.img||"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=600&fit=crop",
+      was,now,store:form.store,pct:was>0?Math.round((1-now/was)*100):0,
+      timer:form.timer||null,hot:form.hot,code:form.code||`SAVE${Math.round((1-now/was)*100)}`,
+      accent:"#6EE7B7"});
     onClose();
   };
 
-  const inpSt = {width:"100%",padding:"11px 14px",borderRadius:12,border:`1.5px solid ${t.border}`,background:t.surface2,color:t.text,fontSize:14,fontWeight:500,marginBottom:10,display:"block",transition:"border .15s"};
-  const focus = e=>e.target.style.borderColor=t.accent;
-  const blur  = e=>e.target.style.borderColor=t.border;
+  const Cls=isDesktop?"modal":"sheet";
+  const fSt={width:"100%",padding:"12px 14px",borderRadius:12,border:`1px solid ${c.border}`,background:c.s2,color:c.text,fontSize:14,marginBottom:10,display:"block",transition:"border .15s"};
 
   return (
-    <div className="sheet-backdrop" onClick={onClose} style={{background:"rgba(0,0,0,.7)",backdropFilter:"blur(12px)"}}>
-      <div className="sheet-panel" onClick={e=>e.stopPropagation()} style={{background:t.surface,borderTop:`1px solid ${t.border}`}}>
-        <div style={{width:38,height:4,borderRadius:2,background:t.border,margin:"14px auto 20px"}}/>
+    <div className="overlay" onClick={onClose} style={{background:"rgba(0,0,0,.75)",backdropFilter:"blur(16px)"}}>
+      <div className={Cls} onClick={e=>e.stopPropagation()} style={{background:c.s1,border:`1px solid ${c.border}`}}>
+        {!isDesktop&&<div style={{width:38,height:4,borderRadius:2,background:c.s4,margin:"16px auto 20px"}}/>}
+        {isDesktop&&<button onClick={onClose} className="tap" style={{position:"absolute",top:20,right:20,width:32,height:32,borderRadius:10,border:`1px solid ${c.border}`,background:c.s2,color:c.text2,fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
 
-        {step==="url" && (
+        {step==="url"&&(
           <>
-            <div style={{marginBottom:20}}>
-              <div style={{fontWeight:900,fontSize:22,color:t.text,marginBottom:4}}>+ Add a Deal</div>
-              <div style={{fontSize:13,color:t.text2}}>Paste a product URL — AI fills in the details</div>
-            </div>
-            <input autoFocus value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://amazon.com/product/..."
-              onKeyDown={e=>e.key==="Enter"&&analyze()}
-              style={{...inpSt,border:`1.5px solid ${t.accent}`,fontSize:15,marginBottom:14}} onFocus={focus} onBlur={blur}/>
+            <div style={{fontSize:26,fontWeight:900,color:c.text,marginBottom:6,letterSpacing:"-.5px"}}>Add a deal</div>
+            <div style={{fontSize:13,color:c.text2,marginBottom:20}}>Paste a product URL — AI fills the details automatically</div>
+            <input autoFocus className="field" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://amazon.com/dp/..."
+              onKeyDown={e=>e.key==="Enter"&&analyze()} style={{fontSize:15,marginBottom:14}}/>
             <button className="tap" onClick={analyze} disabled={!url.trim()}
-              style={{width:"100%",padding:"14px",borderRadius:16,border:"none",background:url.trim()?t.accent:t.border,color:url.trim()?"#fff":t.text3,fontWeight:800,fontSize:15,marginBottom:12}}>
+              style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:url.trim()?"#6EE7B7":c.s4,color:url.trim()?"#080810":c.text3,fontWeight:800,fontSize:14,marginBottom:12,boxShadow:url.trim()?"0 4px 20px rgba(110,231,183,.3)":"none"}}>
               Analyze with AI →
             </button>
-            <div style={{textAlign:"center"}}>
-              <span onClick={()=>setStep("edit")} style={{color:t.text3,fontSize:13,cursor:"pointer"}}>or fill in manually</span>
-            </div>
+            <div style={{textAlign:"center"}}><span onClick={()=>setStep("edit")} style={{fontSize:12,color:c.text3,cursor:"pointer",textDecoration:"underline"}}>fill in manually</span></div>
           </>
         )}
 
-        {step==="loading" && (
-          <div style={{textAlign:"center",padding:"52px 20px"}}>
-            <div style={{fontSize:52,marginBottom:14,animation:"spinOnce 2s linear infinite",display:"inline-block"}}>🤖</div>
-            <div style={{fontWeight:800,fontSize:18,color:t.text,marginBottom:6}}>Analyzing URL...</div>
-            <div style={{fontSize:13,color:t.text2}}>AI is extracting product details</div>
+        {step==="loading"&&(
+          <div style={{textAlign:"center",padding:"56px 0"}}>
+            <div style={{fontSize:52,marginBottom:14,animation:"spin 2s linear infinite",display:"inline-block"}}>🤖</div>
+            <div style={{fontSize:20,fontWeight:800,color:c.text,marginBottom:6}}>Analyzing...</div>
+            <div style={{fontSize:13,color:c.text2}}>AI is reading the product</div>
           </div>
         )}
 
-        {step==="edit" && (
+        {step==="edit"&&(
           <>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div>
-                <div style={{fontWeight:900,fontSize:20,color:t.text,marginBottom:2}}>Review & Edit</div>
-                <div style={{fontSize:12,color:t.text2}}>AI pre-filled — adjust before publishing</div>
-              </div>
-              <button onClick={()=>setStep("url")} style={{background:"none",border:"none",color:t.text3,fontSize:12,cursor:"pointer"}}>Back</button>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <div style={{fontSize:22,fontWeight:900,color:c.text,letterSpacing:"-.4px"}}>Review & edit</div>
+              <button onClick={()=>setStep("url")} style={{background:"none",border:"none",color:c.text3,fontSize:12,cursor:"pointer",textDecoration:"underline"}}>Back</button>
             </div>
-            {aiErr && <div style={{background:"rgba(255,107,0,.12)",border:`1px solid rgba(255,107,0,.3)`,borderRadius:12,padding:"10px 14px",color:"#FF6B00",fontSize:13,fontWeight:700,marginBottom:14}}>⚠️ {aiErr}</div>}
-
-            {/* Preview card */}
-            <div style={{background:t.surface2,borderRadius:16,padding:"14px",marginBottom:18,display:"flex",gap:12,alignItems:"center",border:`1px solid ${t.border}`}}>
-              <div style={{width:52,height:52,borderRadius:12,overflow:"hidden",background:t.border,flexShrink:0}}>
-                {form.img && <img src={form.img} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>}
+            {err&&<div style={{background:c.s2,borderRadius:12,padding:"10px 14px",color:"#FCA5A5",fontSize:13,marginBottom:14}}>{err}</div>}
+            <div style={{display:"flex",gap:12,alignItems:"center",padding:"14px",background:c.s2,borderRadius:16,marginBottom:20,border:`1px solid ${c.border}`}}>
+              <div style={{width:52,height:52,borderRadius:12,overflow:"hidden",background:c.s3,flexShrink:0}}>
+                {form.img&&<img src={form.img} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>}
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:800,color:t.text,fontSize:14,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{form.title||"Product title"}</div>
-                <div style={{color:t.text2,fontSize:12,marginTop:1}}>{form.store}</div>
-                <div style={{display:"flex",gap:8,marginTop:4,alignItems:"baseline"}}>
-                  <span style={{fontWeight:800,color:t.accent,fontSize:16}}>{form.now?fp(form.now):"-"}</span>
-                  {form.was&&<span style={{color:t.text3,fontSize:12,textDecoration:"line-through"}}>{fp(form.was)}</span>}
+                <div style={{fontSize:14,fontWeight:700,color:c.text,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{form.title||"—"}</div>
+                <div style={{fontSize:12,color:c.text3,marginTop:2}}>{form.store}</div>
+                <div style={{display:"flex",gap:8,alignItems:"baseline",marginTop:4}}>
+                  <span style={{fontSize:16,fontWeight:800,color:c.text}}>{form.now?fp(form.now):"—"}</span>
+                  {form.was&&<span style={{fontSize:12,color:c.text3,textDecoration:"line-through"}}>{fp(form.was)}</span>}
                 </div>
               </div>
             </div>
-
-            <input placeholder="Product title *" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} style={inpSt} onFocus={focus} onBlur={blur}/>
-            <input placeholder="Subtitle / variant" value={form.sub} onChange={e=>setForm(f=>({...f,sub:e.target.value}))} style={inpSt} onFocus={focus} onBlur={blur}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:0}}>
-              <input placeholder="Original price" type="number" value={form.was} onChange={e=>setForm(f=>({...f,was:e.target.value}))} style={inpSt} onFocus={focus} onBlur={blur}/>
-              <input placeholder="Sale price *" type="number" value={form.now} onChange={e=>setForm(f=>({...f,now:e.target.value}))} style={inpSt} onFocus={focus} onBlur={blur}/>
+            <input className="field" placeholder="Title *" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} style={fSt}/>
+            <input className="field" placeholder="Subtitle" value={form.sub} onChange={e=>setForm(f=>({...f,sub:e.target.value}))} style={fSt}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <input className="field" placeholder="Was $" type="number" value={form.was} onChange={e=>setForm(f=>({...f,was:e.target.value}))} style={fSt}/>
+              <input className="field" placeholder="Now $ *" type="number" value={form.now} onChange={e=>setForm(f=>({...f,now:e.target.value}))} style={fSt}/>
             </div>
-            <input placeholder="Coupon code" value={form.code} onChange={e=>setForm(f=>({...f,code:e.target.value}))} style={inpSt} onFocus={focus} onBlur={blur}/>
-            <input placeholder="Image URL (optional)" value={form.img} onChange={e=>setForm(f=>({...f,img:e.target.value}))} style={inpSt} onFocus={focus} onBlur={blur}/>
-            <input placeholder="Timer e.g. 02:00:00 (optional)" value={form.timer} onChange={e=>setForm(f=>({...f,timer:e.target.value}))} style={inpSt} onFocus={focus} onBlur={blur}/>
+            <input className="field" placeholder="Coupon code" value={form.code} onChange={e=>setForm(f=>({...f,code:e.target.value}))} style={fSt}/>
+            <input className="field" placeholder="Image URL" value={form.img} onChange={e=>setForm(f=>({...f,img:e.target.value}))} style={fSt}/>
+            <input className="field" placeholder="Timer e.g. 02:00:00" value={form.timer} onChange={e=>setForm(f=>({...f,timer:e.target.value}))} style={fSt}/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-              <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))} style={{padding:"11px 14px",borderRadius:12,border:`1.5px solid ${t.border}`,background:t.surface2,color:t.text,fontSize:14}}>
-                {["Electronics","Fashion","Home","Other"].map(c=><option key={c}>{c}</option>)}
+              <select className="field" value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))} style={fSt}>
+                {["Electronics","Fashion","Home","Other"].map(x=><option key={x}>{x}</option>)}
               </select>
-              <select value={form.badge} onChange={e=>setForm(f=>({...f,badge:e.target.value}))} style={{padding:"11px 14px",borderRadius:12,border:`1.5px solid ${t.border}`,background:t.surface2,color:t.text,fontSize:14}}>
-                {Object.keys(BADGE_META).map(b=><option key={b}>{b}</option>)}
+              <select className="field" value={form.hot?"hot":"normal"} onChange={e=>setForm(f=>({...f,hot:e.target.value==="hot"}))} style={fSt}>
+                <option value="normal">Regular</option>
+                <option value="hot">Hot deal</option>
               </select>
             </div>
             <button className="tap" onClick={save} disabled={!form.title||!form.now}
-              style={{width:"100%",padding:"15px",borderRadius:16,border:"none",background:(form.title&&form.now)?t.accent:t.border,color:(form.title&&form.now)?"#fff":t.text3,fontWeight:800,fontSize:15,boxShadow:(form.title&&form.now)?`0 4px 20px ${t.accent}44`:"none"}}>
-              Publish Deal
+              style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:(form.title&&form.now)?"#6EE7B7":c.s4,color:(form.title&&form.now)?"#080810":c.text3,fontWeight:800,fontSize:14,boxShadow:(form.title&&form.now)?"0 4px 20px rgba(110,231,183,.3)":"none"}}>
+              Publish deal
             </button>
           </>
         )}
@@ -555,105 +581,221 @@ function AddDealSheet({ t, onClose, onAdd }) {
   );
 }
 
-// ─── Sidebar (desktop) ─────────────────────────────────────────────
-function Sidebar({ tab, setTab, t, dark, toggleTheme, user, wishlist, tracked, onSignIn, onSignOut, dealsCount }) {
-  const items = [
-    {id:"deals",    icon:"⚡", label:"Deals",    badge:dealsCount},
-    {id:"saved",    icon:"⭐", label:"Saved",    badge:wishlist.length},
-    {id:"tracking", icon:"📈", label:"Tracking", badge:tracked.length},
-    {id:"account",  icon:"👤", label:"Account"},
-  ];
+// ─── Notif Sheet ──────────────────────────────────────────────────
+function NotifSheet({ notifs, c, isDesktop, onClear, onClose }) {
+  const Cls=isDesktop?"modal":"sheet";
   return (
-    <div className="sidebar" style={{
-      position:"fixed",top:0,left:0,bottom:0,width:220,
-      background:t.surface,borderRight:`1px solid ${t.border}`,
-      display:"flex",flexDirection:"column",padding:"24px 0",
-      zIndex:100,
-    }}>
-      {/* Logo */}
-      <div style={{padding:"0 20px 28px"}}>
-        <div style={{fontWeight:900,fontSize:22,color:t.text,letterSpacing:"-.6px",lineHeight:1}}>
-          nikki<span style={{color:t.accent}}>deals</span>
-          <span style={{color:t.text3,fontSize:12,fontWeight:500}}>.com</span>
-        </div>
-        <div style={{fontSize:10,fontWeight:700,color:t.text3,letterSpacing:1.5,textTransform:"uppercase",marginTop:3}}>Best Deals Daily</div>
-      </div>
-
-      {/* Nav items */}
-      <nav style={{flex:1,padding:"0 10px"}}>
-        {items.map(item=>{
-          const active=tab===item.id;
-          return (
-            <button key={item.id} className="tap" onClick={()=>setTab(item.id)}
-              style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:14,border:"none",background:active?t.accentBg:"transparent",color:active?t.accent:t.text2,fontSize:14,fontWeight:active?700:500,marginBottom:4,position:"relative",textAlign:"left"}}>
-              <span style={{fontSize:18,lineHeight:1}}>{item.icon}</span>
-              {item.label}
-              {item.badge>0 && (
-                <span style={{marginLeft:"auto",background:active?t.accent:"rgba(99,102,241,.2)",color:active?"#fff":t.accent,fontSize:10,fontWeight:800,padding:"2px 7px",borderRadius:10}}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Bottom controls */}
-      <div style={{padding:"16px 10px 0",borderTop:`1px solid ${t.border}`}}>
-        {/* Theme toggle */}
-        <button className="tap" onClick={toggleTheme}
-          style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:14,border:"none",background:"transparent",color:t.text2,fontSize:14,fontWeight:500,marginBottom:4,textAlign:"left"}}>
-          <span style={{fontSize:18}}>{dark?"☀️":"🌙"}</span>
-          {dark ? "Light Mode" : "Dark Mode"}
-        </button>
-        {/* User */}
-        {user ? (
-          <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:34,height:34,borderRadius:10,background:t.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:"#fff",fontSize:14,flexShrink:0}}>
-              {user.name[0].toUpperCase()}
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:700,color:t.text,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{user.name}</div>
-              <button onClick={onSignOut} style={{background:"none",border:"none",color:t.text3,fontSize:11,cursor:"pointer",padding:0,textAlign:"left"}}>Sign out</button>
-            </div>
+    <div className="overlay" onClick={onClose} style={{background:"rgba(0,0,0,.7)",backdropFilter:"blur(14px)"}}>
+      <div className={Cls} onClick={e=>e.stopPropagation()} style={{background:c.s1,border:`1px solid ${c.border}`}}>
+        {!isDesktop&&<div style={{width:38,height:4,borderRadius:2,background:c.s4,margin:"16px auto 0"}}/>}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 0 18px"}}>
+          <div style={{fontSize:22,fontWeight:900,color:c.text,letterSpacing:"-.4px"}}>Notifications</div>
+          <div style={{display:"flex",gap:14,alignItems:"center"}}>
+            <span onClick={onClear} style={{fontSize:12,color:c.text3,cursor:"pointer",textDecoration:"underline"}}>Clear all</span>
+            {isDesktop&&<button onClick={onClose} className="tap" style={{width:30,height:30,borderRadius:8,border:`1px solid ${c.border}`,background:c.s2,color:c.text2,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
           </div>
-        ) : (
-          <button className="tap" onClick={onSignIn}
-            style={{width:"100%",padding:"11px 14px",borderRadius:14,border:"none",background:t.accent,color:"#fff",fontSize:14,fontWeight:700,marginTop:4,boxShadow:`0 4px 16px ${t.accent}44`}}>
-            Sign In
-          </button>
-        )}
+        </div>
+        <div style={{maxHeight:"55vh",overflowY:"auto"}}>
+          {notifs.length===0?(
+            <div style={{textAlign:"center",padding:"48px 0",color:c.text3}}>
+              <div style={{fontSize:40,marginBottom:10}}>🔕</div>
+              <div style={{fontSize:16,fontWeight:600,color:c.text,marginBottom:4}}>All caught up</div>
+              <div style={{fontSize:13}}>Alerts land here when prices drop</div>
+            </div>
+          ):notifs.map(n=>(
+            <div key={n.id} style={{display:"flex",gap:14,padding:"14px 0",borderBottom:`1px solid ${c.border}`,alignItems:"flex-start"}}>
+              <div style={{width:44,height:44,borderRadius:12,background:c.s2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,border:`1px solid ${c.border}`}}>{n.icon}</div>
+              <div>
+                <div style={{fontSize:14,fontWeight:600,color:c.text,marginBottom:3}}>{n.title}</div>
+                <div style={{fontSize:13,color:c.text2,lineHeight:1.4}}>{n.body}</div>
+                <div style={{fontSize:11,color:c.text3,marginTop:4}}>{n.time}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Mobile Nav ────────────────────────────────────────────────────
-function MobileNav({ tab, setTab, t, wishlist, tracked }) {
-  const items = [
-    {id:"deals",    icon:"⚡", label:"Deals"},
-    {id:"saved",    icon:"⭐", label:"Saved",    badge:wishlist.length},
-    {id:"tracking", icon:"📈", label:"Track",    badge:tracked.length},
-    {id:"account",  icon:"👤", label:"Me"},
-  ];
+// ─── Header ───────────────────────────────────────────────────────
+function Header({ c, dark, toggle, user, notifCount, onSignIn, onNotif, onAddDeal, isAdmin }) {
+  const { isDesktop } = useBreakpoint();
   return (
-    <nav className="mobile-nav" style={{
-      position:"fixed",bottom:0,left:0,right:0,
-      background:t.nav,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",
-      borderTop:`1px solid ${t.border}`,display:"flex",zIndex:200,
-      paddingBottom:"env(safe-area-inset-bottom,6px)",
-    }}>
+    <header className="glass" style={{borderBottom:`1px solid ${c.border}`,position:"sticky",top:0,zIndex:100}}>
+      <div className="page" style={{height:62,display:"flex",alignItems:"center",gap:16}}>
+        {/* Logo */}
+        <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+          <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(110,231,183,.4)"}}>
+            <span style={{fontSize:15,fontWeight:900,color:"#080810",fontFamily:"serif",lineHeight:1}}>N</span>
+          </div>
+          <div>
+            <span style={{fontSize:17,fontWeight:900,color:c.text,letterSpacing:"-.5px"}}>nikki</span>
+            <span className="grad" style={{fontSize:17,fontWeight:900,letterSpacing:"-.5px"}}>deals</span>
+            <span style={{fontSize:11,color:c.text3,fontWeight:400}}>.com</span>
+          </div>
+        </div>
+
+        <div style={{flex:1}}/>
+
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {isAdmin&&isDesktop&&(
+            <button className="tap" onClick={onAddDeal}
+              style={{padding:"8px 16px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text2,fontSize:13,fontWeight:600,letterSpacing:".01em"}}>
+              + Add deal
+            </button>
+          )}
+          <button className="tap" onClick={toggle}
+            style={{width:36,height:36,borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>
+            {dark?"☀️":"🌙"}
+          </button>
+          {user&&(
+            <button className="tap" onClick={onNotif}
+              style={{width:36,height:36,borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,position:"relative"}}>
+              🔔
+              {notifCount>0&&<span style={{position:"absolute",top:7,right:7,width:7,height:7,borderRadius:"50%",background:"#6EE7B7",border:`2px solid ${c.s1}`}}/>}
+            </button>
+          )}
+          {user?(
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:"#080810",fontSize:13}}>
+                {user.name[0].toUpperCase()}
+              </div>
+              {isDesktop&&<span style={{fontSize:13,color:c.text2,fontWeight:500}}>{user.name}</span>}
+            </div>
+          ):(
+            <button className="tap" onClick={onSignIn}
+              style={{padding:"9px 20px",borderRadius:10,border:"none",background:"#6EE7B7",color:"#080810",fontSize:13,fontWeight:700,boxShadow:"0 4px 16px rgba(110,231,183,.35)"}}>
+              Sign in
+            </button>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ─── Hero ──────────────────────────────────────────────────────────
+function Hero({ deals, c, dark }) {
+  const hot = deals.filter(d=>d.hot).length;
+  const topPct = Math.max(...deals.map(d=>d.pct));
+  const topSave = Math.max(...deals.map(d=>d.was-d.now));
+  return (
+    <div style={{borderBottom:`1px solid ${c.border}`,padding:"64px 0 56px",position:"relative",overflow:"hidden"}}>
+      {/* Background glow orbs */}
+      <div style={{position:"absolute",top:-100,left:"10%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(110,231,183,.08),transparent 70%)",pointerEvents:"none",animation:"glow 6s ease-in-out infinite"}}/>
+      <div style={{position:"absolute",top:-60,right:"5%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(147,197,253,.06),transparent 70%)",pointerEvents:"none",animation:"glow 8s ease-in-out infinite 2s"}}/>
+
+      <div className="page" style={{position:"relative"}}>
+        {/* Live badge */}
+        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:dark?"rgba(110,231,183,.1)":"rgba(110,231,183,.15)",border:"1px solid rgba(110,231,183,.25)",borderRadius:20,padding:"5px 14px",marginBottom:20}}>
+          <span className="live-dot" style={{width:6,height:6,borderRadius:"50%",background:"#6EE7B7",display:"inline-block"}}/>
+          <span style={{fontSize:11,fontWeight:700,color:"#6EE7B7",letterSpacing:".06em",textTransform:"uppercase"}}>Live · {deals.length} deals today</span>
+        </div>
+
+        {/* Headline */}
+        <h1 style={{fontSize:"clamp(38px,5.5vw,74px)",fontWeight:900,letterSpacing:"-2px",lineHeight:1.02,marginBottom:16,maxWidth:760}}>
+          <span style={{color:c.text}}>The internet's</span><br/>
+          <span className="grad">best deals</span>
+          <span style={{color:c.text2,fontWeight:300,fontStyle:"italic"}}> — curated daily.</span>
+        </h1>
+
+        <p style={{fontSize:16,color:c.text2,maxWidth:520,lineHeight:1.65,marginBottom:40,fontWeight:400}}>
+          Save up to {topPct}% on electronics, fashion, and home. Real-time price tracking and alerts when things drop.
+        </p>
+
+        {/* Stat chips */}
+        <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+          {[
+            {n:hot,l:"Hot deals",c:"#6EE7B7"},
+            {n:`${topPct}%`,l:"Top discount",c:"#93C5FD"},
+            {n:`$${topSave}`,l:"Max savings",c:"#C4B5FD"},
+          ].map(s=>(
+            <div key={s.l} style={{background:dark?"rgba(255,255,255,.04)":"rgba(0,0,0,.04)",border:`1px solid ${c.border}`,borderRadius:14,padding:"14px 20px",minWidth:110,backdropFilter:"blur(10px)"}}>
+              <div style={{fontSize:26,fontWeight:900,color:s.c,letterSpacing:"-1px"}}>{s.n}</div>
+              <div style={{fontSize:11,color:c.text3,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",marginTop:3}}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Filter Bar ───────────────────────────────────────────────────
+function FilterBar({ cat, setCat, sort, setSort, search, setSearch, c, dark }) {
+  return (
+    <div className="glass" style={{borderBottom:`1px solid ${c.border}`,position:"sticky",top:62,zIndex:90}}>
+      <div className="page" style={{height:54,display:"flex",alignItems:"center",gap:10,overflowX:"auto",scrollbarWidth:"none"}}>
+        {CATS.map(x=>{
+          const active=cat===x;
+          return (
+            <button key={x} className="tap" onClick={()=>setCat(x)}
+              style={{padding:"5px 16px",borderRadius:20,border:`1px solid ${active?"#6EE7B7":c.border}`,background:active?"#6EE7B7":"transparent",color:active?"#080810":c.text2,fontSize:13,fontWeight:active?700:500,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all .15s",boxShadow:active?"0 4px 16px rgba(110,231,183,.3)":"none"}}>
+              {x}
+            </button>
+          );
+        })}
+        <div style={{width:1,height:20,background:c.border,flexShrink:0,margin:"0 4px"}}/>
+        <select value={sort} onChange={e=>setSort(e.target.value)}
+          style={{padding:"5px 12px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text2,fontSize:12,fontWeight:500,cursor:"pointer",flexShrink:0}}>
+          <option value="hot">🔥 Trending</option>
+          <option value="disc">💸 Biggest discount</option>
+          <option value="low">↑ Price</option>
+          <option value="high">↓ Price</option>
+        </select>
+        <div style={{flex:1,maxWidth:200,marginLeft:"auto"}}>
+          <div style={{position:"relative"}}>
+            <svg style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}} width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="8" stroke={c.text3} strokeWidth="2.5"/>
+              <path d="M21 21l-4.35-4.35" stroke={c.text3} strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
+              style={{width:"100%",padding:"5px 10px 5px 28px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text,fontSize:13}}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab Navigation ───────────────────────────────────────────────
+function TabNav({ tab, setTab, c, wishlist, tracked }) {
+  const items=[{id:"deals",l:"Deals"},{id:"saved",l:"Saved",b:wishlist.length},{id:"tracking",l:"Tracking",b:tracked.length},{id:"account",l:"Account"}];
+  return (
+    <div className="glass desktop-only" style={{borderBottom:`1px solid ${c.border}`}}>
+      <div className="page" style={{display:"flex",height:46}}>
+        {items.map(n=>{
+          const a=tab===n.id;
+          return (
+            <button key={n.id} className="tap" onClick={()=>setTab(n.id)}
+              style={{padding:"0 18px",height:"100%",border:"none",borderBottom:`2px solid ${a?"#6EE7B7":"transparent"}`,background:"transparent",color:a?c.text:c.text2,fontSize:13,fontWeight:a?700:400,cursor:"pointer",display:"flex",alignItems:"center",gap:7,marginBottom:-1,transition:"color .15s"}}>
+              {n.l}
+              {n.b>0&&<span style={{background:"#6EE7B7",color:"#080810",fontSize:10,fontWeight:800,padding:"1px 7px",borderRadius:10}}>{n.b}</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Bottom Nav ───────────────────────────────────────────────────
+function BottomNav({ tab, setTab, c, wishlist, tracked }) {
+  const items=[{id:"deals",icon:"⚡",l:"Deals"},{id:"saved",icon:"⭐",l:"Saved",b:wishlist.length},{id:"tracking",icon:"📈",l:"Track",b:tracked.length},{id:"account",icon:"👤",l:"Me"}];
+  return (
+    <nav className="glass mobile-only" style={{position:"fixed",bottom:0,left:0,right:0,borderTop:`1px solid ${c.border}`,display:"flex",zIndex:200,paddingBottom:"env(safe-area-inset-bottom,8px)"}}>
       {items.map(n=>{
-        const active=tab===n.id;
+        const a=tab===n.id;
         return (
           <button key={n.id} className="tap" onClick={()=>setTab(n.id)}
             style={{flex:1,padding:"10px 4px 6px",border:"none",background:"transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
-            {active && <div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:3,borderRadius:"0 0 3px 3px",background:t.accent}}/>}
-            <span style={{fontSize:21,display:"inline-block",position:"relative"}}>
+            {a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:"0 0 2px 2px",background:"#6EE7B7"}}/>}
+            <span style={{fontSize:20,position:"relative"}}>
               {n.icon}
-              {n.badge>0 && <span style={{position:"absolute",top:-4,right:-7,background:"#FF3B5C",color:"#fff",fontSize:9,fontWeight:900,minWidth:16,height:16,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",border:`2px solid ${t.nav}`}}>{n.badge}</span>}
+              {n.b>0&&<span style={{position:"absolute",top:-4,right:-7,background:"#6EE7B7",color:"#080810",fontSize:9,fontWeight:900,minWidth:15,height:15,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 2px",border:`2px solid ${c.bg}`}}>{n.b}</span>}
             </span>
-            <span style={{fontSize:10,fontWeight:700,color:active?t.accent:t.text3}}>{n.label}</span>
+            <span style={{fontSize:10,fontWeight:a?700:400,color:a?"#6EE7B7":c.text3}}>{n.l}</span>
           </button>
         );
       })}
@@ -661,436 +803,274 @@ function MobileNav({ tab, setTab, t, wishlist, tracked }) {
   );
 }
 
-// ─── Page: Deals ───────────────────────────────────────────────────
-function DealsPage({ deals, wishlist, tracked, onWish, onTrack, onGet, t, user, onSignIn, isAdmin, onAddDeal }) {
-  const [cat,setCat] = useState("All");
-  const [sort,setSort] = useState("hot");
-  const [search,setSearch] = useState("");
-  const [searchOpen,setSearchOpen] = useState(false);
-  const searchRef = useRef(null);
-  const { isDesktop } = useBreakpoint();
-
-  useEffect(()=>{ if(searchOpen&&searchRef.current) searchRef.current.focus(); },[searchOpen]);
-
-  const filtered = deals
-    .filter(d=>(cat==="All"||d.cat===cat)&&(d.title+d.store).toLowerCase().includes(search.toLowerCase()))
-    .sort((a,b)=>sort==="hot"?(b.hot?1:0)-(a.hot?1:0):sort==="disc"?b.pct-a.pct:sort==="low"?a.now-b.now:b.now-a.now);
-
+// ─── Pages ────────────────────────────────────────────────────────
+function SavedPage({ wishlist, tracked, deals, onWish, onTrack, onGet, c, dark }) {
+  const items=deals.filter(d=>wishlist.includes(d.id));
   return (
-    <div>
-      {/* Page header */}
-      <div style={{
-        background:t.header,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",
-        borderBottom:`1px solid ${t.border}`,
-        position:"sticky",top:0,zIndex:50,
-        padding:isDesktop?"14px 32px":"0 16px",
-      }}>
-        {/* Mobile: single row */}
-        {!isDesktop && (
-          searchOpen ? (
-            <div style={{height:56,display:"flex",alignItems:"center",gap:10}}>
-              <input ref={searchRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search deals..."
-                style={{flex:1,padding:"9px 14px",borderRadius:12,border:`1.5px solid ${t.accent}`,background:t.surface2,color:t.text,fontSize:14,fontWeight:500}}/>
-              <button onClick={()=>{setSearchOpen(false);setSearch("");}} style={{background:"none",border:"none",color:t.text3,fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0}}>Cancel</button>
-            </div>
-          ) : (
-            <div style={{height:56,display:"flex",alignItems:"center",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-              <span style={{fontWeight:900,fontSize:17,color:t.text,flexShrink:0,marginRight:4,letterSpacing:"-.5px"}}>Deals<span style={{color:t.accent}}>.</span></span>
-              {CATS.map(c=>(
-                <button key={c} className="tap" onClick={()=>setCat(c)}
-                  style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${cat===c?t.accent:t.border}`,background:cat===c?t.accent:"transparent",color:cat===c?"#fff":t.text2,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all .15s"}}>
-                  {c}
-                </button>
-              ))}
-              <div style={{flex:1}}/>
-              <button className="tap" onClick={()=>setSearchOpen(true)} style={{width:32,height:32,borderRadius:10,border:`1px solid ${t.border}`,background:t.surface2,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke={t.text3} strokeWidth="2.5"/><path d="M21 21l-4.35-4.35" stroke={t.text3} strokeWidth="2.5" strokeLinecap="round"/></svg>
-              </button>
-            </div>
-          )
-        )}
-
-        {/* Desktop: full header row */}
-        {isDesktop && (
-          <div style={{display:"flex",alignItems:"center",gap:16}}>
-            <div>
-              <h1 style={{fontWeight:900,fontSize:24,color:t.text,letterSpacing:"-.6px",lineHeight:1}}>
-                Today's Best Deals
-                <span className="live" style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#00C06A",marginLeft:10,verticalAlign:"middle"}}/>
-              </h1>
-              <p style={{fontSize:13,color:t.text3,marginTop:2}}>{filtered.length} deals · updated hourly</p>
-            </div>
-            <div style={{flex:1}}/>
-            {/* Search */}
-            <div style={{position:"relative",width:260}}>
-              <svg style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}} width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke={t.text3} strokeWidth="2.2"/><path d="M21 21l-4.35-4.35" stroke={t.text3} strokeWidth="2.2" strokeLinecap="round"/></svg>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search deals..."
-                style={{width:"100%",padding:"9px 14px 9px 34px",borderRadius:12,border:`1.5px solid ${t.border}`,background:t.surface2,color:t.text,fontSize:14,fontWeight:500,transition:"border .15s"}}
-                onFocus={e=>e.target.style.borderColor=t.accent} onBlur={e=>e.target.style.borderColor=t.border}/>
-            </div>
-            {/* Sort */}
-            <select value={sort} onChange={e=>setSort(e.target.value)}
-              style={{padding:"9px 14px",borderRadius:12,border:`1.5px solid ${t.border}`,background:t.surface2,color:t.text2,fontSize:13,fontWeight:600,cursor:"pointer"}}>
-              <option value="hot">🔥 Trending</option>
-              <option value="disc">💸 Top Discount</option>
-              <option value="low">$ Low to High</option>
-              <option value="high">$ High to Low</option>
-            </select>
-            {/* Categories */}
-            <div style={{display:"flex",gap:6}}>
-              {CATS.map(c=>(
-                <button key={c} className="tap" onClick={()=>setCat(c)}
-                  style={{padding:"7px 14px",borderRadius:20,border:`1px solid ${cat===c?t.accent:t.border}`,background:cat===c?t.accent:t.surface2,color:cat===c?"#fff":t.text2,fontSize:13,fontWeight:700,cursor:"pointer",transition:"all .15s",boxShadow:cat===c?`0 4px 14px ${t.accent}44`:"none"}}>
-                  {c}
-                </button>
-              ))}
-            </div>
-            {isAdmin && (
-              <button className="tap" onClick={onAddDeal}
-                style={{padding:"9px 18px",borderRadius:12,border:"none",background:t.accent,color:"#fff",fontWeight:700,fontSize:13,boxShadow:`0 4px 14px ${t.accent}44`,flexShrink:0}}>
-                + Add Deal
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Desktop sort row */}
-      {isDesktop && (
-        <div style={{padding:"0 32px",marginTop:0}}/>
-      )}
-
-      {/* Cards grid */}
-      <div style={{padding:isDesktop?"24px 32px 40px":"12px 16px 100px"}}>
-        {/* Stats row (mobile) */}
-        {!isDesktop && (
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
-            {[["🔥",deals.filter(d=>d.hot).length,"Hot"],["🏷",deals.length,"Deals"],["⚡",deals.filter(d=>d.timer).length,"Flash"]].map(([e,n,l])=>(
-              <div key={l} style={{background:t.surface,borderRadius:14,padding:"12px 8px",textAlign:"center",border:`1px solid ${t.border}`}}>
-                <div style={{fontSize:18}}>{e}</div>
-                <div style={{fontWeight:900,fontSize:18,color:t.text}}>{n}</div>
-                <div style={{fontSize:10,color:t.text3,marginTop:1}}>{l}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Mobile sort */}
-        {!isDesktop && (
-          <div style={{display:"flex",gap:8,marginBottom:16,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-            {[["hot","🔥 Hot"],["disc","% Off"],["low","$ Low"],["high","$ High"]].map(([v,l])=>(
-              <button key={v} className="tap" onClick={()=>setSort(v)}
-                style={{padding:"6px 14px",borderRadius:20,border:`1px solid ${sort===v?t.accent:t.border}`,background:sort===v?t.accentBg:"transparent",color:sort===v?t.accent:t.text3,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
-                {l}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="deals-grid">
-          {filtered.length > 0
-            ? filtered.map((d,i)=><DealCard key={d.id} d={d} wishlist={wishlist} tracked={tracked} onWish={onWish} onTrack={onTrack} onGet={onGet} t={t} delay={i*.04}/>)
-            : <div style={{gridColumn:"1/-1",textAlign:"center",padding:"80px 20px",color:t.text3}}>
-                <div style={{fontSize:48,marginBottom:12}}>🔍</div>
-                <div style={{fontWeight:800,fontSize:18,color:t.text2}}>No deals found</div>
-              </div>
-          }
-        </div>
-      </div>
-
-      {/* Admin FAB (mobile only) */}
-      {isAdmin && !isDesktop && (
-        <button className="tap" onClick={onAddDeal}
-          style={{position:"fixed",bottom:90,right:20,width:52,height:52,borderRadius:"50%",border:"none",background:t.accent,color:"#fff",fontSize:22,cursor:"pointer",zIndex:300,boxShadow:`0 4px 20px ${t.accent}66`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900}}>
-          +
-        </button>
-      )}
+    <div className="page" style={{padding:"40px 0 100px"}}>
+      <div style={{fontSize:28,fontWeight:900,color:c.text,letterSpacing:"-.6px",marginBottom:4}}>Saved deals</div>
+      <div style={{fontSize:13,color:c.text3,marginBottom:32}}>{items.length} saved</div>
+      {items.length>0
+        ?<div className="deal-grid">{items.map((d,i)=><DealCard key={d.id} d={d} wishlist={wishlist} tracked={tracked} onWish={onWish} onTrack={onTrack} onGet={onGet} c={c} dark={dark} delay={i*.04}/>)}</div>
+        :<div style={{textAlign:"center",padding:"80px 0",color:c.text3}}><div style={{fontSize:40,marginBottom:12}}>🤍</div><div style={{fontSize:18,fontWeight:600,color:c.text2}}>Nothing saved yet</div></div>
+      }
     </div>
   );
 }
 
-// ─── Page: Saved ───────────────────────────────────────────────────
-function SavedPage({ wishlist, tracked, deals, onWish, onTrack, onGet, t }) {
-  const { isDesktop } = useBreakpoint();
-  const items = deals.filter(d=>wishlist.includes(d.id));
+function TrackingPage({ tracked, deals, onTrack, c }) {
+  const items=deals.filter(d=>tracked.includes(d.id));
   return (
-    <div style={{padding:isDesktop?"32px":"20px 16px 100px"}}>
-      <h2 style={{fontWeight:900,fontSize:22,color:t.text,letterSpacing:"-.4px",marginBottom:4}}>Saved Deals</h2>
-      <p style={{fontSize:13,color:t.text3,marginBottom:24}}>{items.length>0?`${items.length} saved`:"Nothing saved yet"}</p>
-      {items.length>0 ? (
-        <div className="deals-grid">
-          {items.map((d,i)=><DealCard key={d.id} d={d} wishlist={wishlist} tracked={tracked} onWish={onWish} onTrack={onTrack} onGet={onGet} t={t} delay={i*.04}/>)}
-        </div>
-      ) : (
-        <div style={{textAlign:"center",padding:"80px 20px"}}>
-          <div style={{fontSize:52,marginBottom:12}}>🤍</div>
-          <div style={{fontWeight:800,fontSize:18,color:t.text2,marginBottom:6}}>Nothing saved yet</div>
-          <div style={{fontSize:14,color:t.text3}}>Tap the heart icon on any deal</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Page: Tracking ────────────────────────────────────────────────
-function TrackingPage({ tracked, deals, onTrack, t }) {
-  const { isDesktop } = useBreakpoint();
-  const items = deals.filter(d=>tracked.includes(d.id));
-  return (
-    <div style={{padding:isDesktop?"32px":"20px 16px 100px"}}>
-      <h2 style={{fontWeight:900,fontSize:22,color:t.text,letterSpacing:"-.4px",marginBottom:4}}>Price Tracker</h2>
-      <p style={{fontSize:13,color:t.text3,marginBottom:24}}>{items.length>0?`Watching ${items.length} item${items.length>1?"s":""}`:"No items being tracked"}</p>
-      {items.length>0 ? (
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+    <div className="page" style={{padding:"40px 0 100px"}}>
+      <div style={{fontSize:28,fontWeight:900,color:c.text,letterSpacing:"-.6px",marginBottom:4}}>Price tracker</div>
+      <div style={{fontSize:13,color:c.text3,marginBottom:32}}>Watching {items.length} item{items.length!==1?"s":""}</div>
+      {items.length>0
+        ?<div style={{display:"flex",flexDirection:"column",gap:12}}>
           {items.map(d=>(
-            <div key={d.id} style={{background:t.surface,borderRadius:18,padding:"16px",display:"flex",alignItems:"center",gap:14,border:`1px solid ${t.border}`,boxShadow:`0 2px 10px ${t.shadow}`}}>
-              <div style={{width:56,height:56,borderRadius:14,overflow:"hidden",background:t.surface2,flexShrink:0}}>
-                <img src={d.img} alt={d.title} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+            <div key={d.id} style={{display:"flex",alignItems:"center",gap:16,padding:"18px 20px",background:c.s1,borderRadius:18,border:`1px solid ${c.border}`,boxShadow:`0 2px 12px rgba(0,0,0,.15)`}}>
+              <div style={{width:60,height:60,borderRadius:14,overflow:"hidden",background:c.s2,flexShrink:0}}>
+                <img src={d.img} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:800,color:t.text,fontSize:15,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.title}</div>
-                <div style={{color:t.text3,fontSize:12,marginTop:2}}>{d.store}</div>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:5}}>
-                  <span style={{fontWeight:900,color:t.accent,fontSize:18}}>{fp(d.now)}</span>
-                  <span style={{background:t.accentBg,color:t.accent,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:8}}>-{d.pct}%</span>
-                  {d.timer && <TimerDisplay time={d.timer} t={t}/>}
-                </div>
+                <div style={{fontSize:16,fontWeight:800,color:c.text,letterSpacing:"-.2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.title}</div>
+                <div style={{fontSize:12,color:c.text3,marginTop:2}}>{d.store}</div>
               </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontSize:22,fontWeight:900,color:c.text,letterSpacing:"-.8px"}}>{fp(d.now)}</div>
+                <div style={{fontSize:11,color:d.accent||"#6EE7B7",fontWeight:600,marginTop:2}}>-{d.pct}% off</div>
+              </div>
+              {d.timer&&<Timer time={d.timer} style={{fontSize:11,color:c.text3,fontWeight:600,minWidth:56,textAlign:"right"}}/>}
               <button className="tap" onClick={()=>onTrack(d.id)}
-                style={{padding:"8px 14px",borderRadius:12,border:`1px solid rgba(255,59,92,.3)`,background:"rgba(255,59,92,.08)",color:"#FF3B5C",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}}>
+                style={{padding:"8px 14px",borderRadius:10,border:`1px solid ${c.border}`,background:"transparent",color:c.text3,fontSize:12,fontWeight:500,cursor:"pointer",flexShrink:0}}>
                 Stop
               </button>
             </div>
           ))}
         </div>
-      ) : (
-        <div style={{textAlign:"center",padding:"80px 20px"}}>
-          <div style={{fontSize:52,marginBottom:12}}>📊</div>
-          <div style={{fontWeight:800,fontSize:18,color:t.text2,marginBottom:6}}>Nothing tracked yet</div>
-          <div style={{fontSize:14,color:t.text3}}>Track deals to get price drop alerts</div>
-        </div>
-      )}
+        :<div style={{textAlign:"center",padding:"80px 0",color:c.text3}}><div style={{fontSize:40,marginBottom:12}}>📊</div><div style={{fontSize:18,fontWeight:600,color:c.text2}}>Nothing tracked yet</div></div>
+      }
     </div>
   );
 }
 
-// ─── Page: Account ─────────────────────────────────────────────────
-function AccountPage({ user, wishlist, tracked, t, dark, toggleTheme, onSignIn, onSignOut, isAdmin, onAddDeal }) {
-  const { isDesktop } = useBreakpoint();
-  if (!user) return (
-    <div style={{textAlign:"center",padding:"80px 28px 100px"}}>
-      <div style={{width:80,height:80,borderRadius:24,background:t.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 20px",boxShadow:`0 8px 28px ${t.accent}44`}}>👤</div>
-      <h2 style={{fontWeight:900,fontSize:24,color:t.text,marginBottom:10}}>Your Account</h2>
-      <p style={{color:t.text3,fontSize:15,maxWidth:280,margin:"0 auto 28px",lineHeight:1.6}}>Sign in to access your wishlist, alerts and preferences</p>
-      <button className="tap" onClick={onSignIn} style={{padding:"15px 36px",borderRadius:16,border:"none",background:t.accent,color:"#fff",fontWeight:700,fontSize:16,cursor:"pointer",boxShadow:`0 4px 20px ${t.accent}44`}}>Sign In →</button>
+function AccountPage({ user, wishlist, tracked, c, dark, toggle, onSignIn, onSignOut, isAdmin, onAddDeal }) {
+  if(!user) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"60vh"}}>
+      <div style={{textAlign:"center",maxWidth:360,padding:"0 24px"}}>
+        <div style={{width:72,height:72,borderRadius:20,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",margin:"0 auto 20px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,boxShadow:"0 8px 28px rgba(110,231,183,.3)"}}>👤</div>
+        <div style={{fontSize:28,fontWeight:900,color:c.text,letterSpacing:"-.6px",marginBottom:8}}>Your account</div>
+        <p style={{fontSize:14,color:c.text2,lineHeight:1.6,marginBottom:28}}>Sign in to manage your wishlist, price alerts, and deal history.</p>
+        <button className="tap" onClick={onSignIn}
+          style={{padding:"14px 32px",borderRadius:14,border:"none",background:"#6EE7B7",color:"#080810",fontWeight:800,fontSize:15,boxShadow:"0 6px 24px rgba(110,231,183,.35)"}}>
+          Sign in →
+        </button>
+      </div>
     </div>
   );
   return (
-    <div style={{padding:isDesktop?"32px":"20px 16px 100px",maxWidth:isDesktop?600:undefined}}>
+    <div className="page" style={{padding:"40px 0 100px",maxWidth:600}}>
       {/* Profile card */}
-      <div style={{borderRadius:22,overflow:"hidden",marginBottom:20,boxShadow:`0 4px 24px ${t.shadow}`}}>
-        <div style={{background:`linear-gradient(135deg,${t.accent},#a855f7)`,padding:"28px 22px 24px",textAlign:"center"}}>
-          <div style={{width:66,height:66,borderRadius:20,background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,color:"#fff",fontSize:26,margin:"0 auto 12px",border:"2px solid rgba(255,255,255,.35)"}}>{user.name[0].toUpperCase()}</div>
-          <div style={{fontWeight:900,fontSize:20,color:"#fff"}}>{user.name}</div>
-          <div style={{color:"rgba(255,255,255,.7)",fontSize:14,marginTop:3}}>{user.email}</div>
+      <div style={{borderRadius:20,overflow:"hidden",marginBottom:20,border:`1px solid ${c.border}`}}>
+        <div style={{background:"linear-gradient(135deg,#6EE7B7 0%,#93C5FD 50%,#C4B5FD 100%)",padding:"28px 24px",display:"flex",alignItems:"center",gap:16}}>
+          <div style={{width:56,height:56,borderRadius:16,background:"rgba(8,8,16,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,color:"#fff",fontSize:22,flexShrink:0}}>
+            {user.name[0].toUpperCase()}
+          </div>
+          <div>
+            <div style={{fontSize:20,fontWeight:900,color:"#080810",letterSpacing:"-.4px"}}>{user.name}</div>
+            <div style={{fontSize:13,color:"rgba(8,8,16,.6)",marginTop:2}}>{user.email}</div>
+          </div>
         </div>
-        <div style={{background:t.surface,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",borderTop:`1px solid ${t.border}`}}>
-          {[[wishlist.length,"⭐","Saved"],[tracked.length,"📈","Tracking"],["12","🏷","Deals"]].map(([n,e,l],i)=>(
-            <div key={l} style={{padding:"14px 0",textAlign:"center",borderRight:i<2?`1px solid ${t.border}`:"none"}}>
-              <div style={{fontSize:18}}>{e}</div>
-              <div style={{fontWeight:900,fontSize:20,color:t.text}}>{n}</div>
-              <div style={{fontSize:11,color:t.text3,marginTop:1}}>{l}</div>
+        <div style={{background:c.s1,display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
+          {[[wishlist.length,"Saved"],[tracked.length,"Tracking"],[DEALS_DATA.length,"Deals"]].map(([n,l],i)=>(
+            <div key={l} style={{padding:"16px",textAlign:"center",borderRight:i<2?`1px solid ${c.border}`:"none"}}>
+              <div style={{fontSize:24,fontWeight:900,color:c.text,letterSpacing:"-.8px"}}>{n}</div>
+              <div style={{fontSize:11,color:c.text3,fontWeight:600,letterSpacing:".05em",textTransform:"uppercase",marginTop:3}}>{l}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Dark mode toggle */}
-      <div style={{background:t.surface,borderRadius:18,overflow:"hidden",border:`1px solid ${t.border}`,marginBottom:14}}>
-        <div onClick={toggleTheme} style={{display:"flex",alignItems:"center",gap:14,padding:"16px 18px",cursor:"pointer"}}>
-          <div style={{width:40,height:40,borderRadius:12,background:t.surface2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{dark?"☀️":"🌙"}</div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:700,color:t.text,fontSize:15}}>{dark?"Switch to Light Mode":"Switch to Dark Mode"}</div>
-            <div style={{color:t.text3,fontSize:13,marginTop:1}}>Currently {dark?"dark":"light"}</div>
-          </div>
-          <div style={{width:44,height:26,borderRadius:13,background:dark?t.accent:t.border,position:"relative",transition:"background .2s",flexShrink:0}}>
-            <div style={{position:"absolute",top:3,left:dark?22:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}/>
+      {/* Theme toggle */}
+      <div style={{background:c.s1,borderRadius:16,marginBottom:14,border:`1px solid ${c.border}`}}>
+        <div onClick={toggle} style={{display:"flex",alignItems:"center",gap:14,padding:"16px 20px",cursor:"pointer"}}>
+          <span style={{fontSize:20}}>{dark?"☀️":"🌙"}</span>
+          <div style={{flex:1,fontSize:14,fontWeight:500,color:c.text}}>{dark?"Switch to light":"Switch to dark"}</div>
+          <div style={{width:44,height:24,borderRadius:12,background:dark?"#6EE7B7":c.s4,position:"relative",transition:"background .25s"}}>
+            <div style={{position:"absolute",top:3,left:dark?22:3,width:18,height:18,borderRadius:"50%",background:dark?"#080810":"#fff",transition:"left .25s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
           </div>
         </div>
       </div>
 
-      {/* Admin section */}
-      {isAdmin && (
+      {isAdmin&&(
         <div style={{marginBottom:14}}>
-          <div style={{fontSize:11,fontWeight:700,color:t.text3,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>Admin</div>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:c.text3,marginBottom:10}}>Admin</div>
           <button className="tap" onClick={onAddDeal}
-            style={{width:"100%",padding:"14px",borderRadius:16,border:"none",background:t.accent,color:"#fff",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:`0 4px 16px ${t.accent}44`}}>
+            style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:"#6EE7B7",color:"#080810",fontWeight:800,fontSize:14,boxShadow:"0 4px 20px rgba(110,231,183,.3)"}}>
             + Add New Deal
           </button>
         </div>
       )}
 
-      {/* Settings */}
-      <div style={{background:t.surface,borderRadius:18,overflow:"hidden",border:`1px solid ${t.border}`,marginBottom:14}}>
-        {[{i:"🔔",l:"Notifications",s:"Manage alerts"},{i:"🏷️",l:"Preferences",s:"Categories & stores"},{i:"🔒",l:"Security",s:"Password & privacy"},{i:"💬",l:"Help",s:"FAQs & contact"}].map((r,i)=>(
-          <div key={r.l} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:i<3?`1px solid ${t.border}`:"none",cursor:"pointer"}}>
-            <div style={{width:40,height:40,borderRadius:12,background:t.surface2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:19}}>{r.i}</div>
-            <div style={{flex:1}}>
-              <div style={{fontWeight:700,color:t.text,fontSize:14}}>{r.l}</div>
-              <div style={{color:t.text3,fontSize:12,marginTop:1}}>{r.s}</div>
-            </div>
-            <span style={{color:t.text3,fontSize:18}}>›</span>
+      <div style={{background:c.s1,borderRadius:16,overflow:"hidden",border:`1px solid ${c.border}`,marginBottom:14}}>
+        {[{i:"🔔",l:"Notifications"},{i:"🏷️",l:"Preferences"},{i:"🔒",l:"Security"},{i:"💬",l:"Help"}].map((r,i,arr)=>(
+          <div key={r.l} style={{display:"flex",alignItems:"center",gap:14,padding:"15px 20px",borderBottom:i<arr.length-1?`1px solid ${c.border}`:"none",cursor:"pointer"}}>
+            <span style={{fontSize:18}}>{r.i}</span>
+            <span style={{flex:1,fontSize:14,fontWeight:400,color:c.text}}>{r.l}</span>
+            <span style={{color:c.text3,fontSize:16}}>›</span>
           </div>
         ))}
       </div>
       <button className="tap" onClick={onSignOut}
-        style={{width:"100%",padding:"14px",borderRadius:16,border:`1px solid ${t.border}`,background:"transparent",color:t.text3,fontWeight:700,fontSize:14,cursor:"pointer"}}>
-        Sign Out
+        style={{width:"100%",padding:"14px",borderRadius:14,border:`1px solid ${c.border}`,background:"transparent",color:c.text3,fontSize:14,cursor:"pointer"}}>
+        Sign out
       </button>
     </div>
   );
 }
 
-// ─── Notif Sheet ───────────────────────────────────────────────────
-function NotifSheet({ notifs, t, onClear, onClose }) {
+// ─── Toast ────────────────────────────────────────────────────────
+function Toasts({ items, remove, c }) {
   return (
-    <div className="sheet-backdrop" onClick={onClose} style={{background:"rgba(0,0,0,.6)",backdropFilter:"blur(10px)"}}>
-      <div className="sheet-panel" onClick={e=>e.stopPropagation()} style={{background:t.surface,borderTop:`1px solid ${t.border}`}}>
-        <div style={{width:38,height:4,borderRadius:2,background:t.border,margin:"14px auto 0"}}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 0 14px"}}>
-          <span style={{fontWeight:900,fontSize:20,color:t.text}}>Notifications</span>
-          <div style={{display:"flex",gap:14,alignItems:"center"}}>
-            <span onClick={onClear} style={{color:t.accent,fontSize:13,fontWeight:700,cursor:"pointer"}}>Clear all</span>
-            <button onClick={onClose} style={{width:30,height:30,borderRadius:10,border:`1px solid ${t.border}`,background:t.surface2,color:t.text3,fontSize:14,cursor:"pointer"}}>✕</button>
-          </div>
+    <div style={{position:"fixed",bottom:80,right:20,zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none",maxWidth:320}}>
+      {items.map(it=>(
+        <div key={it.id} onClick={()=>remove(it.id)} style={{
+          background:c.s2,border:`1px solid ${c.border}`,
+          borderRadius:14,padding:"13px 16px",
+          display:"flex",alignItems:"center",gap:12,
+          boxShadow:"0 8px 32px rgba(0,0,0,.4)",
+          animation:"fadeUp .35s cubic-bezier(.34,1.2,.64,1)",
+          pointerEvents:"all",cursor:"pointer",
+        }}>
+          <span style={{fontSize:18}}>{it.icon}</span>
+          <span style={{flex:1,fontSize:13,fontWeight:500,color:c.text}}>{it.msg}</span>
         </div>
-        <div style={{overflowY:"auto",maxHeight:"55vh"}}>
-          {notifs.length===0 ? (
-            <div style={{textAlign:"center",padding:"44px 20px"}}>
-              <div style={{fontSize:44,marginBottom:8}}>🔕</div>
-              <div style={{fontWeight:700,fontSize:15,color:t.text,marginBottom:3}}>All quiet</div>
-              <div style={{fontSize:13,color:t.text3}}>We'll alert you when prices drop</div>
-            </div>
-          ) : notifs.map(n=>(
-            <div key={n.id} style={{display:"flex",gap:12,padding:"12px 0",borderBottom:`1px solid ${t.border}`,alignItems:"flex-start"}}>
-              <div style={{width:44,height:44,borderRadius:13,background:t.surface2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{n.icon}</div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700,color:t.text,fontSize:14,marginBottom:2}}>{n.title}</div>
-                <div style={{color:t.text2,fontSize:13}}>{n.body}</div>
-                <div style={{color:t.text3,fontSize:11,marginTop:3}}>{n.time}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
 
-// ─── Mobile Header ─────────────────────────────────────────────────
-function MobileHeader({ t, dark, toggleTheme, user, onSignIn, notifCount, onNotif }) {
-  return null; // handled inside DealsPage for deals, other pages use their own titles
+// ─── Footer ───────────────────────────────────────────────────────
+function Footer({ c }) {
+  return (
+    <footer style={{borderTop:`1px solid ${c.border}`,marginTop:64}}>
+      <div className="page" style={{padding:"28px 0",display:"flex",flexWrap:"wrap",gap:12,alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:22,height:22,borderRadius:7,background:"linear-gradient(135deg,#6EE7B7,#93C5FD)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{fontSize:10,fontWeight:900,color:"#080810",fontFamily:"serif"}}>N</span>
+          </div>
+          <span style={{fontSize:14,fontWeight:700,color:c.text,letterSpacing:"-.3px"}}>nikkideals<span style={{color:c.text3,fontWeight:400}}>.com</span></span>
+        </div>
+        <div style={{fontSize:12,color:c.text3}}>Best deals daily · Updated hourly · admin@nikkideals.com</div>
+      </div>
+    </footer>
+  );
 }
 
-// ─── Main App ──────────────────────────────────────────────────────
-export default function NikkiDeals() {
-  const { dark, toggle: toggleTheme, t } = useTheme();
-  const { isDesktop } = useBreakpoint();
+// ─── Main ─────────────────────────────────────────────────────────
+export default function App() {
+  const { dark, toggle, c } = useTheme();
+  const { isDesktop, isMobile } = useBreakpoint();
 
-  const [tab,setTab]             = useState("deals");
-  const [user,setUser]           = useState(null);
-  const [authMode,setAuthMode]   = useState(null);
-  const [deals,setDeals]         = useState(INITIAL_DEALS);
-  const [wishlist,setWishlist]   = useState([]);
-  const [tracked,setTracked]     = useState([]);
-  const [notifs,setNotifs]       = useState([]);
-  const [showNotif,setShowNotif] = useState(false);
-  const [activeDeal,setActiveDeal]= useState(null);
-  const [showAddDeal,setShowAddDeal]= useState(false);
-  const [toasts,setToasts]       = useState([]);
+  const [tab,setTab]           = useState("deals");
+  const [cat,setCat]           = useState("All");
+  const [sort,setSort]         = useState("hot");
+  const [search,setSearch]     = useState("");
+  const [user,setUser]         = useState(null);
+  const [deals,setDeals]       = useState(DEALS_DATA);
+  const [wishlist,setWishlist] = useState([]);
+  const [tracked,setTracked]   = useState([]);
+  const [notifs,setNotifs]     = useState([]);
+  const [activeDeal,setActiveDeal]   = useState(null);
+  const [showAuth,setShowAuth]       = useState(null);
+  const [showNotif,setShowNotif]     = useState(false);
+  const [showAdd,setShowAdd]         = useState(false);
+  const [toasts,setToasts]           = useState([]);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
+  // Inject CSS
   useEffect(()=>{
-    if(!user) return;
-    const t2=setTimeout(()=>{
+    let el=document.getElementById("nd3css");
+    if(!el){el=document.createElement("style");el.id="nd3css";document.head.appendChild(el);}
+    el.textContent=makeCSS(dark);
+  },[dark]);
+
+  // Notifications on login
+  useEffect(()=>{
+    if(!user)return;
+    const tm=setTimeout(()=>{
       setNotifs([
-        {id:uid(),icon:"📉",title:"Price dropped!",body:"Sony WH-1000XM5 is now $179 🎉",time:"Just now"},
-        {id:uid(),icon:"⚡",title:"Flash Deal!",body:"Stanley Quencher 52% off — hurry!",time:"2m ago"},
-        {id:uid(),icon:"⭐",title:"Wishlist alert",body:"Nike Air Max 270 dropped to $74!",time:"5m ago"},
+        {id:uid(),icon:"📉",title:"Price dropped",body:"Sony WH-1000XM5 → $179",time:"Just now"},
+        {id:uid(),icon:"⏱",title:"Flash deal expiring",body:"Stanley Quencher — 2h left",time:"4m ago"},
+        {id:uid(),icon:"⭐",title:"Wishlist alert",body:"Nike Air Max 270 → $74",time:"11m ago"},
       ]);
-      addToast({msg:"3 new deal alerts!",icon:"🔔",bg:t.accent});
-    },3500);
-    return ()=>clearTimeout(t2);
+      addToast({msg:"3 new price alerts",icon:"📉"});
+    },4000);
+    return ()=>clearTimeout(tm);
   },[user]);
 
-  const addToast = ({msg,icon,bg}) => {
+  const addToast = useCallback(({msg,icon})=>{
     const id=uid();
-    setToasts(p=>[...p,{id,msg,icon,bg}]);
+    setToasts(p=>[...p,{id,msg,icon}]);
     setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
-  };
+  },[]);
 
-  const toggleWish  = id => { if(!user){setAuthMode("signup");return;} setWishlist(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]); };
-  const toggleTrack = id => { if(!user){setAuthMode("signup");return;} setTracked(t=>t.includes(id)?t.filter(x=>x!==id):[...t,id]); };
-  const handleAuth  = u  => { setUser(u);setAuthMode(null); addToast({msg:`Welcome, ${u.name}! 🎉`,icon:"🎊",bg:"#00C06A"}); };
-  const handleOut   = () => { setUser(null);setWishlist([]);setTracked([]);setNotifs([]); addToast({msg:"Signed out",icon:"👋",bg:t.text2}); };
-  const addDeal     = d  => { setDeals(p=>[d,...p]); addToast({msg:"Deal published!",icon:"✅",bg:"#00C06A"}); };
+  const toggleWish  = id=>{if(!user){setShowAuth("signup");return;}setWishlist(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]);};
+  const toggleTrack = id=>{if(!user){setShowAuth("signup");return;}setTracked(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);};
+  const handleAuth  = u =>{setUser(u);setShowAuth(null);addToast({msg:`Welcome, ${u.name}`,icon:"👋"});};
+  const handleOut   = () =>{setUser(null);setWishlist([]);setTracked([]);setNotifs([]);addToast({msg:"Signed out",icon:"✓"});};
+  const handleAdd   = d =>{setDeals(p=>[d,...p]);addToast({msg:"Deal published",icon:"✓"});};
 
-  // Desktop top bar
-  const DesktopTopBar = () => (
-    <div style={{
-      position:"fixed",top:0,left:220,right:0,
-      height:0,zIndex:50,
-    }}/>
-  );
+  const filtered=deals
+    .filter(d=>(cat==="All"||d.cat===cat)&&(d.title+d.store).toLowerCase().includes(search.toLowerCase()))
+    .sort((a,b)=>sort==="hot"?(b.hot?1:0)-(a.hot?1:0):sort==="disc"?b.pct-a.pct:sort==="low"?a.now-b.now:b.now-a.now);
 
   return (
-    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"'Outfit',sans-serif",color:t.text}}>
-      <style>{CSS}</style>
+    <div style={{minHeight:"100vh",background:c.bg,color:c.text,position:"relative",zIndex:1}}>
+      <Ticker deals={deals}/>
+      <Header c={c} dark={dark} toggle={toggle} user={user} notifCount={notifs.length}
+        onSignIn={()=>setShowAuth("login")} onNotif={()=>setShowNotif(true)}
+        onAddDeal={()=>setShowAdd(true)} isAdmin={isAdmin}/>
+      <TabNav tab={tab} setTab={setTab} c={c} wishlist={wishlist} tracked={tracked}/>
 
-      {/* Desktop sidebar */}
-      <Sidebar
-        tab={tab} setTab={setTab} t={t} dark={dark} toggleTheme={toggleTheme}
-        user={user} wishlist={wishlist} tracked={tracked}
-        onSignIn={()=>setAuthMode("login")} onSignOut={handleOut}
-        dealsCount={deals.length}
-      />
+      {tab==="deals"&&(
+        <>
+          <Hero deals={deals} c={c} dark={dark}/>
+          <FilterBar cat={cat} setCat={setCat} sort={sort} setSort={setSort} search={search} setSearch={setSearch} c={c} dark={dark}/>
+          <div className="page" style={{padding:"28px 0",paddingBottom:isMobile?100:60}}>
+            {isAdmin&&isMobile&&(
+              <button className="tap" onClick={()=>setShowAdd(true)}
+                style={{width:"100%",padding:"12px",borderRadius:12,border:`1px solid ${c.border}`,background:"transparent",color:c.text2,fontSize:13,fontWeight:500,marginBottom:20,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                + Add a deal
+              </button>
+            )}
+            {filtered.length>0
+              ?<div className="deal-grid">{filtered.map((d,i)=><DealCard key={d.id} d={d} wishlist={wishlist} tracked={tracked} onWish={toggleWish} onTrack={toggleTrack} onGet={setActiveDeal} c={c} dark={dark} delay={Math.min(i*.04,.35)}/>)}</div>
+              :<div style={{textAlign:"center",padding:"80px 0",color:c.text3}}><div style={{fontSize:32,marginBottom:12}}>—</div><div style={{fontSize:18,fontWeight:600,color:c.text2}}>No deals match</div></div>
+            }
+          </div>
+          <Footer c={c}/>
+        </>
+      )}
 
-      {/* Desktop notification bell in top-right */}
-      {isDesktop && user && (
-        <button className="tap" onClick={()=>setShowNotif(true)}
-          style={{position:"fixed",top:20,right:24,width:40,height:40,borderRadius:12,border:`1px solid ${t.border}`,background:t.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,zIndex:150,cursor:"pointer"}}>
-          🔔
-          {notifs.length>0 && <span style={{position:"absolute",top:7,right:7,width:7,height:7,borderRadius:"50%",background:"#FF3B5C",border:`2px solid ${t.surface}`}}/>}
+      {tab==="saved"    &&<><SavedPage wishlist={wishlist} tracked={tracked} deals={deals} onWish={toggleWish} onTrack={toggleTrack} onGet={setActiveDeal} c={c} dark={dark}/><Footer c={c}/></>}
+      {tab==="tracking" &&<><TrackingPage tracked={tracked} deals={deals} onTrack={toggleTrack} c={c}/><Footer c={c}/></>}
+      {tab==="account"  &&<><AccountPage user={user} wishlist={wishlist} tracked={tracked} c={c} dark={dark} toggle={toggle} onSignIn={()=>setShowAuth("signup")} onSignOut={handleOut} isAdmin={isAdmin} onAddDeal={()=>setShowAdd(true)}/><Footer c={c}/></>}
+
+      <BottomNav tab={tab} setTab={setTab} c={c} wishlist={wishlist} tracked={tracked}/>
+
+      {isAdmin&&isMobile&&tab==="deals"&&(
+        <button className="tap" onClick={()=>setShowAdd(true)}
+          style={{position:"fixed",bottom:84,right:20,width:50,height:50,borderRadius:"50%",border:"none",background:"#6EE7B7",color:"#080810",fontSize:22,cursor:"pointer",zIndex:300,boxShadow:"0 6px 24px rgba(110,231,183,.45)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900}}>
+          +
         </button>
       )}
 
-      {/* Main content */}
-      <div className="main-content" style={{minHeight:"100vh"}}>
-        {tab==="deals"    && <DealsPage deals={deals} wishlist={wishlist} tracked={tracked} onWish={toggleWish} onTrack={toggleTrack} onGet={setActiveDeal} t={t} user={user} onSignIn={()=>setAuthMode("login")} isAdmin={isAdmin} onAddDeal={()=>setShowAddDeal(true)}/>}
-        {tab==="saved"    && <SavedPage wishlist={wishlist} tracked={tracked} deals={deals} onWish={toggleWish} onTrack={toggleTrack} onGet={setActiveDeal} t={t}/>}
-        {tab==="tracking" && <TrackingPage tracked={tracked} deals={deals} onTrack={toggleTrack} t={t}/>}
-        {tab==="account"  && <AccountPage user={user} wishlist={wishlist} tracked={tracked} t={t} dark={dark} toggleTheme={toggleTheme} onSignIn={()=>setAuthMode("signup")} onSignOut={handleOut} isAdmin={isAdmin} onAddDeal={()=>setShowAddDeal(true)}/>}
-      </div>
-
-      {/* Mobile nav */}
-      <MobileNav tab={tab} setTab={setTab} t={t} wishlist={wishlist} tracked={tracked}/>
-
-      {/* Toasts */}
-      <div style={{position:"fixed",bottom:isDesktop?24:88,right:isDesktop?24:"50%",transform:isDesktop?"none":"translateX(50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,width:isDesktop?340:"calc(100% - 28px)",maxWidth:isDesktop?340:400,pointerEvents:"none",left:isDesktop?"auto":undefined}}>
-        {toasts.map(toast=>(
-          <div key={toast.id} style={{background:toast.bg||t.accent,borderRadius:16,padding:"13px 18px",display:"flex",alignItems:"center",gap:12,boxShadow:`0 6px 24px rgba(0,0,0,.3)`,animation:"fadeUp .3s cubic-bezier(.34,1.2,.64,1)",pointerEvents:"all"}}>
-            <span style={{fontSize:20}}>{toast.icon}</span>
-            <span style={{flex:1,color:"#fff",fontSize:14,fontWeight:700}}>{toast.msg}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Overlays */}
-      {activeDeal   && <DealSheet     d={activeDeal}    t={t} onClose={()=>setActiveDeal(null)}/>}
-      {showAddDeal  && <AddDealSheet  t={t} onClose={()=>setShowAddDeal(false)} onAdd={addDeal}/>}
-      {showNotif    && <NotifSheet    notifs={notifs} t={t} onClear={()=>setNotifs([])} onClose={()=>setShowNotif(false)}/>}
-      {authMode     && <AuthModal     mode={authMode} t={t} isDesktop={isDesktop} onClose={()=>setAuthMode(null)} onAuth={handleAuth}/>}
+      {activeDeal &&<DealSheet  d={activeDeal}  c={c} dark={dark} isDesktop={isDesktop} onClose={()=>setActiveDeal(null)}/>}
+      {showAuth   &&<AuthSheet  mode={showAuth}  c={c} dark={dark} isDesktop={isDesktop} onClose={()=>setShowAuth(null)}   onAuth={handleAuth}/>}
+      {showNotif  &&<NotifSheet notifs={notifs}  c={c} isDesktop={isDesktop} onClear={()=>setNotifs([])} onClose={()=>setShowNotif(false)}/>}
+      {showAdd    &&<AddSheet   c={c} dark={dark} isDesktop={isDesktop} onClose={()=>setShowAdd(false)} onAdd={handleAdd}/>}
+      <Toasts items={toasts} remove={id=>setToasts(p=>p.filter(x=>x.id!==id))} c={c}/>
     </div>
   );
 }
