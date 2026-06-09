@@ -766,7 +766,7 @@ function ViewToggle({ view, setView, t }) {
 
 // ─── Bottom Nav ───────────────────────────────────────────────────
 function BottomNav({ tab, setTab, t, wishlist, tracked }) {
-  const items=[{id:"home",icon:"🏠",l:"Home"},{id:"saved",icon:"🤍",l:"Saved",b:wishlist.length},{id:"tracking",icon:"📈",l:"Alerts",b:tracked.length},{id:"account",icon:"👤",l:"Profile"}];
+  const items=[{id:"home",icon:"🏠",l:"Home"},{id:"tracking",icon:"🔔",l:"Alerts",b:tracked.length},{id:"saved",icon:"❤️",l:"Saved",b:wishlist.length},{id:"account",icon:"👤",l:"Profile"}];
   return (
     <nav className="mobile-only" style={{position:"fixed",bottom:0,left:0,right:0,background:t.surface,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:`1px solid ${t.border}`,display:"flex",zIndex:200,paddingBottom:"env(safe-area-inset-bottom,8px)",boxShadow:`0 -4px 20px ${t.shadow}`}}>
       {items.map(n=>{
@@ -910,8 +910,8 @@ function AccountPage({ user, wishlist, tracked, t, dark, toggle, onSignIn, onSig
 
 // ─── Right Sidebar (desktop only) ────────────────────────────────
 function RightSidebar({ t, user, wishlist, tracked, deals, onSignIn, onGet }) {
-  const savedItems   = deals.filter(d=>wishlist.includes(d.id)).slice(0,4);
-  const trackedItems = deals.filter(d=>tracked.includes(d.id)).slice(0,4);
+  const trackedItems  = deals.filter(d=>tracked.includes(d.id)).slice(0,4);
+  const expiringDeals = deals.filter(d=>d.timer).slice(0,5);
   const trendingDeals = [...deals].sort((a,b)=>(b.hot?1:0)-(a.hot?1:0)).slice(0,5);
 
   const SideCard = ({d}) => (
@@ -988,47 +988,53 @@ function RightSidebar({ t, user, wishlist, tracked, deals, onSignIn, onGet }) {
         </div>
       </Section>
 
-      {/* Saved deals */}
-      <Section title="Your Saved" icon="❤️"
-        empty="🤍" emptyMsg={user?"No saved deals yet.\nHeart any deal to save it.":"Sign in to save your favorite deals."}>
-        {savedItems.length>0 && (
-          <div>
-            {savedItems.map((d,i)=>(
-              <div key={d.id} style={{borderBottom:i<savedItems.length-1?`1px solid ${t.border}`:"none"}}>
-                <SideCard d={d}/>
+      {/* Expiring Soon */}
+      <Section title="Expiring Soon" icon="⏱">
+        <div>
+          {expiringDeals.map((d,i)=>(
+            <div key={d.id} className="tap" onClick={()=>onGet(d)}
+              style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:i<expiringDeals.length-1?`1px solid ${t.border}`:"none",cursor:"pointer"}}>
+              <div style={{width:44,height:44,borderRadius:10,overflow:"hidden",background:t.surf2,flexShrink:0}}>
+                <img src={d.img} alt={d.title} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
               </div>
-            ))}
-            {wishlist.length>4 && (
-              <div style={{fontSize:12,color:t.accent,fontWeight:600,paddingTop:10,textAlign:"center",cursor:"pointer"}}>+{wishlist.length-4} more saved →</div>
-            )}
-          </div>
-        )}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:700,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:3}}>{d.title}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:12,fontWeight:800,color:t.accent}}>${d.now}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:"#EF4444",background:"#FEF2F2",padding:"2px 7px",borderRadius:8}}>
+                    <Timer time={d.timer} style={{fontVariantNumeric:"tabular-nums"}}/>
+                  </span>
+                </div>
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:"#EF4444",flexShrink:0}}>-{d.pct}%</span>
+            </div>
+          ))}
+        </div>
       </Section>
 
-      {/* Tracked deals */}
+      {/* Price Alerts */}
       <Section title="Price Alerts" icon="🔔"
         empty="🔕" emptyMsg={user?"No active alerts.\nTrack a deal to get notified.":"Sign in to track price drops."}>
         {trackedItems.length>0 && (
           <div>
             {trackedItems.map((d,i)=>(
-              <div key={d.id} style={{borderBottom:i<trackedItems.length-1?`1px solid ${t.border}`:"none"}}>
-                <div className="tap" onClick={()=>onGet(d)}
-                  style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",cursor:"pointer"}}>
-                  <div style={{width:46,height:46,borderRadius:10,overflow:"hidden",background:t.surf2,flexShrink:0}}>
-                    <img src={d.img} alt={d.title} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:700,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:2}}>{d.title}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:13,fontWeight:800,color:t.accent}}>${d.now}</span>
-                      {d.timer && <span style={{fontSize:10,color:"#10B981",fontWeight:600,background:"#ECFDF5",padding:"1px 6px",borderRadius:6}}>⏱ expires soon</span>}
-                    </div>
+              <div key={d.id} className="tap" onClick={()=>onGet(d)}
+                style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:i<trackedItems.length-1?`1px solid ${t.border}`:"none",cursor:"pointer"}}>
+                <div style={{width:44,height:44,borderRadius:10,overflow:"hidden",background:t.surf2,flexShrink:0}}>
+                  <img src={d.img} alt={d.title} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:3}}>{d.title}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:12,fontWeight:800,color:t.accent}}>${d.now}</span>
+                    <span style={{fontSize:11,color:t.text3,textDecoration:"line-through"}}>${d.was}</span>
                   </div>
                 </div>
+                <span style={{fontSize:11,fontWeight:700,color:t.accent,background:t.accentL,padding:"3px 8px",borderRadius:8,flexShrink:0}}>-{d.pct}%</span>
               </div>
             ))}
             {tracked.length>4 && (
-              <div style={{fontSize:12,color:t.accent,fontWeight:600,paddingTop:10,textAlign:"center",cursor:"pointer"}}>+{tracked.length-4} more tracked →</div>
+              <div style={{fontSize:12,color:t.accent,fontWeight:600,paddingTop:10,textAlign:"center",cursor:"pointer"}}>+{tracked.length-4} more →</div>
             )}
           </div>
         )}
