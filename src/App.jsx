@@ -908,6 +908,147 @@ function AccountPage({ user, wishlist, tracked, t, dark, toggle, onSignIn, onSig
   );
 }
 
+// ─── Right Sidebar (desktop only) ────────────────────────────────
+function RightSidebar({ t, user, wishlist, tracked, deals, onSignIn, onGet }) {
+  const savedItems   = deals.filter(d=>wishlist.includes(d.id)).slice(0,4);
+  const trackedItems = deals.filter(d=>tracked.includes(d.id)).slice(0,4);
+  const trendingDeals = [...deals].sort((a,b)=>(b.hot?1:0)-(a.hot?1:0)).slice(0,5);
+
+  const SideCard = ({d}) => (
+    <div className="tap" onClick={()=>onGet(d)}
+      style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${t.border}`,cursor:"pointer"}}>
+      <div style={{width:46,height:46,borderRadius:10,overflow:"hidden",background:t.surf2,flexShrink:0}}>
+        <img src={d.img} alt={d.title} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:13,fontWeight:700,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:2}}>{d.title}</div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:13,fontWeight:800,color:t.accent}}>${d.now}</span>
+          <span style={{fontSize:11,color:t.text3,textDecoration:"line-through"}}>${d.was}</span>
+          <span style={{fontSize:10,background:t.accentL,color:t.accent,padding:"1px 6px",borderRadius:6,fontWeight:700,marginLeft:"auto"}}>-{d.pct}%</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const Section = ({title, icon, children, empty, emptyMsg}) => (
+    <div style={{background:t.surface,borderRadius:16,padding:"16px",border:`1px solid ${t.border}`,boxShadow:`0 2px 8px ${t.shadow}`,marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+        <span style={{fontSize:16}}>{icon}</span>
+        <span style={{fontSize:14,fontWeight:800,color:t.text,letterSpacing:"-.2px"}}>{title}</span>
+      </div>
+      {children || (
+        <div style={{textAlign:"center",padding:"16px 0"}}>
+          <div style={{fontSize:28,marginBottom:6}}>{empty}</div>
+          <div style={{fontSize:12,color:t.text3,lineHeight:1.4}}>{emptyMsg}</div>
+          {!user && (
+            <button className="tap" onClick={onSignIn}
+              style={{marginTop:12,padding:"7px 16px",borderRadius:20,border:"none",background:t.accent,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:`0 2px 10px ${t.accent}44`}}>
+              Sign In
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <aside style={{width:280,flexShrink:0,position:"sticky",top:80,alignSelf:"flex-start",maxHeight:"calc(100vh - 96px)",overflowY:"auto",scrollbarWidth:"none",paddingBottom:24}}>
+
+      {/* Ad banner */}
+      <div style={{background:`linear-gradient(135deg,#6366F1,#7C3AED)`,borderRadius:16,padding:"20px 18px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 4px 20px ${t.accent}44`}}>
+        <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"rgba(255,255,255,.08)",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:-30,left:-10,width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,.05)",pointerEvents:"none"}}/>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.6)",marginBottom:8}}>Sponsored</div>
+        <div style={{fontSize:16,fontWeight:800,color:"#fff",lineHeight:1.25,marginBottom:6,letterSpacing:"-.3px"}}>Get 3 months of Prime free</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,.75)",marginBottom:14,lineHeight:1.5}}>Exclusive deals, fast shipping & more for new members.</div>
+        <button className="tap" style={{padding:"8px 18px",borderRadius:20,border:"none",background:"#fff",color:"#6366F1",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+          Claim Offer →
+        </button>
+      </div>
+
+      {/* Trending Now */}
+      <Section title="Trending Now" icon="🔥">
+        <div>
+          {trendingDeals.map((d,i)=>(
+            <div key={d.id}>
+              <div className="tap" onClick={()=>onGet(d)}
+                style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:i<trendingDeals.length-1?`1px solid ${t.border}`:"none",cursor:"pointer"}}>
+                <div style={{width:22,height:22,borderRadius:6,background:t.accentL,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:11,color:t.accent,flexShrink:0}}>
+                  {i+1}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.title}</div>
+                  <div style={{fontSize:11,color:t.text3,marginTop:1}}>{d.store}</div>
+                </div>
+                <span style={{fontSize:12,fontWeight:800,color:t.accent,flexShrink:0}}>${d.now}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Saved deals */}
+      <Section title="Your Saved" icon="❤️"
+        empty="🤍" emptyMsg={user?"No saved deals yet.\nHeart any deal to save it.":"Sign in to save your favorite deals."}>
+        {savedItems.length>0 && (
+          <div>
+            {savedItems.map((d,i)=>(
+              <div key={d.id} style={{borderBottom:i<savedItems.length-1?`1px solid ${t.border}`:"none"}}>
+                <SideCard d={d}/>
+              </div>
+            ))}
+            {wishlist.length>4 && (
+              <div style={{fontSize:12,color:t.accent,fontWeight:600,paddingTop:10,textAlign:"center",cursor:"pointer"}}>+{wishlist.length-4} more saved →</div>
+            )}
+          </div>
+        )}
+      </Section>
+
+      {/* Tracked deals */}
+      <Section title="Price Alerts" icon="🔔"
+        empty="🔕" emptyMsg={user?"No active alerts.\nTrack a deal to get notified.":"Sign in to track price drops."}>
+        {trackedItems.length>0 && (
+          <div>
+            {trackedItems.map((d,i)=>(
+              <div key={d.id} style={{borderBottom:i<trackedItems.length-1?`1px solid ${t.border}`:"none"}}>
+                <div className="tap" onClick={()=>onGet(d)}
+                  style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",cursor:"pointer"}}>
+                  <div style={{width:46,height:46,borderRadius:10,overflow:"hidden",background:t.surf2,flexShrink:0}}>
+                    <img src={d.img} alt={d.title} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:2}}>{d.title}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:13,fontWeight:800,color:t.accent}}>${d.now}</span>
+                      {d.timer && <span style={{fontSize:10,color:"#10B981",fontWeight:600,background:"#ECFDF5",padding:"1px 6px",borderRadius:6}}>⏱ expires soon</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {tracked.length>4 && (
+              <div style={{fontSize:12,color:t.accent,fontWeight:600,paddingTop:10,textAlign:"center",cursor:"pointer"}}>+{tracked.length-4} more tracked →</div>
+            )}
+          </div>
+        )}
+      </Section>
+
+      {/* Second ad */}
+      <div style={{background:t.surface,borderRadius:16,padding:"18px",border:`1px solid ${t.border}`,boxShadow:`0 2px 8px ${t.shadow}`,textAlign:"center"}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:t.text3,marginBottom:10}}>Advertisement</div>
+        <div style={{width:60,height:60,borderRadius:16,background:"linear-gradient(135deg,#10B981,#059669)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 10px",boxShadow:"0 4px 14px rgba(16,185,129,.35)"}}>💳</div>
+        <div style={{fontSize:14,fontWeight:800,color:t.text,marginBottom:4,letterSpacing:"-.2px"}}>Cashback on every deal</div>
+        <div style={{fontSize:12,color:t.text2,lineHeight:1.5,marginBottom:14}}>Earn up to 10% cashback when you shop through NikkiDeals.</div>
+        <button className="tap" style={{width:"100%",padding:"9px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#10B981,#059669)",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:"0 3px 12px rgba(16,185,129,.35)"}}>
+          Learn More
+        </button>
+      </div>
+
+    </aside>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────────
 export default function App() {
   const { dark, toggle, t } = useTheme();
@@ -976,30 +1117,41 @@ export default function App() {
         <div className="page" style={{paddingBottom:isMobile?100:60}}>
           <HeroBanner deals={deals} t={t}/>
           <CategoryStrip cat={cat} setCat={setCat} t={t}/>
-          <div style={{padding:"8px 0 28px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
-              <h2 style={{fontSize:20,fontWeight:800,color:t.text,letterSpacing:"-.3px"}}>Top Deals of the Day</h2>
-              <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-                <select value={sort} onChange={e=>setSort(e.target.value)}
-                  style={{padding:"6px 12px",borderRadius:10,border:`1px solid ${t.border}`,background:t.surface,color:t.text2,fontSize:12,fontWeight:500,cursor:"pointer"}}>
-                  <option value="hot">Trending</option>
-                  <option value="disc">Top Discount</option>
-                  <option value="low">Price Low</option>
-                  <option value="high">Price High</option>
-                </select>
-                <ViewToggle view={view} setView={setView} t={t}/>
-                <button className="tap" style={{fontSize:13,color:t.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>View All ›</button>
+
+          {/* Two-column layout on desktop */}
+          <div style={{display:"flex",gap:24,alignItems:"flex-start",padding:"8px 0 28px"}}>
+
+            {/* Main content — 3/4 width */}
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+                <h2 style={{fontSize:20,fontWeight:800,color:t.text,letterSpacing:"-.3px"}}>Top Deals of the Day</h2>
+                <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+                  <select value={sort} onChange={e=>setSort(e.target.value)}
+                    style={{padding:"6px 12px",borderRadius:10,border:`1px solid ${t.border}`,background:t.surface,color:t.text2,fontSize:12,fontWeight:500,cursor:"pointer"}}>
+                    <option value="hot">Trending</option>
+                    <option value="disc">Top Discount</option>
+                    <option value="low">Price Low</option>
+                    <option value="high">Price High</option>
+                  </select>
+                  <ViewToggle view={view} setView={setView} t={t}/>
+                  <button className="tap" style={{fontSize:13,color:t.accent,fontWeight:600,background:"none",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>View All ›</button>
+                </div>
               </div>
+              {filtered.length>0
+                ? view==="grid"
+                  ? <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:16}}>{filtered.map((d,i)=><GridCard key={d.id} d={d} wishlist={wishlist} onWish={toggleWish} onGet={setActiveDeal} t={t} delay={Math.min(i*.04,.4)}/>)}</div>
+                  : <div className="list-view">{filtered.map((d,i)=><ListCard key={d.id} d={d} wishlist={wishlist} onWish={toggleWish} onGet={setActiveDeal} t={t} delay={Math.min(i*.04,.4)}/>)}</div>
+                : <div style={{textAlign:"center",padding:"60px 0",color:t.text3}}><div style={{fontSize:40,marginBottom:12}}>🔍</div><div style={{fontSize:18,fontWeight:600,color:t.text2}}>No deals match</div></div>
+              }
+              <StoreStrip t={t}/>
+              <FeatureBadges t={t}/>
             </div>
-            {filtered.length>0
-              ? view==="grid"
-                ? <div className="grid-4">{filtered.map((d,i)=><GridCard key={d.id} d={d} wishlist={wishlist} onWish={toggleWish} onGet={setActiveDeal} t={t} delay={Math.min(i*.04,.4)}/>)}</div>
-                : <div className="list-view">{filtered.map((d,i)=><ListCard key={d.id} d={d} wishlist={wishlist} onWish={toggleWish} onGet={setActiveDeal} t={t} delay={Math.min(i*.04,.4)}/>)}</div>
-              : <div style={{textAlign:"center",padding:"60px 0",color:t.text3}}><div style={{fontSize:40,marginBottom:12}}>🔍</div><div style={{fontSize:18,fontWeight:600,color:t.text2}}>No deals match</div></div>
-            }
+
+            {/* Right sidebar — desktop only, ~1/4 width */}
+            {isDesktop && (
+              <RightSidebar t={t} user={user} wishlist={wishlist} tracked={tracked} deals={deals} onSignIn={()=>setShowAuth("login")} onGet={setActiveDeal}/>
+            )}
           </div>
-          <StoreStrip t={t}/>
-          <FeatureBadges t={t}/>
         </div>
       )}
 
